@@ -1,0 +1,5 @@
+<launch>
+    <rosparam command="load" file="$(find single_bot)/config/bot_param.yaml" />
+    <rosparam command="load" file="$(find single_bot)/config/global_param.yaml" />
+    <node pkg="single_bot" name="stateMonitor" type="supervisor.py"/>
+</launch>

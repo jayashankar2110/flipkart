@@ -10,7 +10,7 @@ state_ids are [start, navigate, unload, return, stop]
 
 """
 import rospy
-from flipkart.msg import localizemsg
+from single_bot.msg import localizemsg
 from std_msgs.msg import String
 
 def callback(msg):

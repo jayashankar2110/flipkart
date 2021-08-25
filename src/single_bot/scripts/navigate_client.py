@@ -2,8 +2,8 @@
 
 import rospy
 import actionlib
-from flipkart.msg import state1Action
-from flipkart.msg import state1Goal
+from single_bot.msg import state1Action
+from single_bot.msg import state1Goal
 from std_msgs.msg import String
 
 simulate = True

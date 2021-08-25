@@ -6,7 +6,7 @@ state_ids are [start, navigate, unload, return, stop]
 
 """
 import rospy
-from flipkart.msg import com_msg
+from single_bot.msg import com_msg
 from std_msgs.msg import String
 
 

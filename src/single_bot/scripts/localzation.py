@@ -11,7 +11,7 @@ id: "90145110"
 
 """
 import rospy
-from flipkart.msg import localizemsg
+from single_bot.msg import localizemsg
 import cv2 as cv
 import math
 import numpy as np
@@ -194,7 +194,7 @@ def talker():
     rospy.init_node('listener')
     feed_pub = rospy.Publisher('/feedback', localizemsg, queue_size=1)
     state_pub = rospy.Publisher('/state_id',String, queue_size=1 )
-    cap = cv.VideoCapture('src/flipkart/scripts/test8.mp4')
+    cap = cv.VideoCapture('src/single_bot/scripts/test8.mp4')
     # params for ShiTomasi corner detection
 
     # Parameters for lucas kanade optical flow

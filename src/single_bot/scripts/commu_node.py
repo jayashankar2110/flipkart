@@ -10,7 +10,7 @@ and send to bot.
 """
 
 import rospy
-from flipkart.msg import com_msg
+from single_bot.msg import com_msg
 
 def callback(msg,pub):
     rospy.loginfo(msg)

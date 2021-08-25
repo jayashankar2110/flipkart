@@ -24,12 +24,12 @@ import rospy
 from CubicSpline import cubic_spline_planner
 from pathPlanner import a_star
 
-from flipkart.msg import state1Action
-from flipkart.msg import state1Goal
-from flipkart.msg import state1Result
-from flipkart.msg import state1Feedback
-from flipkart.msg import localizemsg
-from flipkart.msg import com_msg
+from single_bot.msg import state1Action
+from single_bot.msg import state1Goal
+from single_bot.msg import state1Result
+from single_bot.msg import state1Feedback
+from single_bot.msg import localizemsg
+from single_bot.msg import com_msg
 
 from PID import PID
 import time as clock
