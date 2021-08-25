@@ -1,0 +1,5 @@
+<launch>
+    <rosparam command="load" file="$(find flipkart)/config/bot_param.yaml" />
+    <rosparam command="load" file="$(find flipkart)/config/global_param.yaml" />
+    <node pkg="flipkart" name="stateMonitor" type="supervisor.py"/>
+</launch>
