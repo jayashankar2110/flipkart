@@ -1,0 +1,15 @@
+#goal
+float64[] targetPose
+float64[] currentPose
+float64 tFinal
+---
+#result
+string Reached
+float64 tElapsed
+---
+#feedback
+float64 tElapsed
+float64 deviation
+float64[] nextPose
+float64 target_wpt_indx
+float64 final_wpt_indx

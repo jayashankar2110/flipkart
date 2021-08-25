@@ -1,0 +1,7 @@
+duration: 10.0  # in seconds
+ctrl_sampling: 0.01
+obstacle_map: [0,0]
+grid_size: 0.06
+mtrs2grid: 32.81   # foot scale down to 10 times and then converted to meters
+n_bots: 1
+
