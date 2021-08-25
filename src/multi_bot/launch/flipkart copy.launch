@@ -1,0 +1,17 @@
+<launch>
+    <rosparam command="load" file="$(find flipkart)/config/bot_param.yaml" />
+    <rosparam command="load" file="$(find flipkart)/config/global_param.yaml" />
+    
+    <group ns="robot1">
+        <rosparam command="load" file="$(find flipkart)/config/bot_param.yaml" />
+        <node pkg="flipkart" name="stateMonitor" type="state_publisher.py"/>
+        <!-- <node pkg="flipkart" name="simple_twist_pub" type="robot_twist_publisher.py"/> -->
+    </group>
+
+    <group ns="robot2">
+        <rosparam command="load" file="$(find flipkart)/config/bot_param.yaml" />
+        <node pkg="flipkart" name="stateMonitor" type="state_publisher.py"/>
+        <!-- <node pkg="flipkart" name="simple_twist_pub" type="robot_twist_publisher.py"/> -->
+    </group>
+    
+</launch>
