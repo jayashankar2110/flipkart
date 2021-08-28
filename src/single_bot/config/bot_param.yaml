@@ -6,7 +6,7 @@ i_state: [0.152, 0.213, 0.0]
 f_state: [1.31, 1.46, 2.0]
 c_state: [0.1, 0.2, 3.14]
 robot_radius: 0.03
-way_points: [[0.0, 6.0, 12.5, 10.0, 17.5, 20.0, 25.0],[0.0, -3.0, -5.0, 6.5, 3.0, 0.0, 0.0]]
+start_navigation: True
 job_done: False
 t_left: 10.0
 unload_time: 60 # in seconds

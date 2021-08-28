@@ -7,6 +7,7 @@ state_ids are [start, navigate, unload, return, stop]
 """
 import rospy
 from single_bot.msg import com_msg
+from std_msgs.msg import Bool
 from std_msgs.msg import String
 
 
@@ -17,16 +18,19 @@ def unload_cb(msg,c_pub):
     rospy.loginfo(msg)
     if msg.data == 'unload':
         rospy.loginfo('Target reached and unloading started')
-        isLoaded = True
         # send signal to commu node for unloading 
-        c_pub.publish(vr = 0.0,vl=0.0,isLoaded=True,ifUnload=True)
-
+        isLoaded = True
+        c_pub.publish(vr = 0.0,vl=0.0,isLoaded=True,ifUnload=True,msg_frm_bot = False)
         #wait for commu node msg
         while isLoaded and not rospy.is_shutdown():
-            bot = rospy.wait_for_message('/commu', com_msg)
-            time +=0.5
-            if time > unloadTime:
-                rospy.logwarn('Unload delay detected..')
+            try:
+                isLoaded = rospy.wait_for_message('/unloadStatus', Bool,timeout=unloadTime)
+            except:
+                ropsy.logwarn('Taking longer than expected to unload..')
+                pass
+            # time +=0.5
+            # if time > unloadTime:
+            #     rospy.logwarn('Unload delay detected..')
 
             if not bot.isLoaded:
                 isLoaded = False  #return tray to initial position
