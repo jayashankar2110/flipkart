@@ -21,6 +21,7 @@ def localize(data):
     global robotvelocity
     global pub
     global msg
+   
     bridge = CvBridge()
     image = bridge.imgmsg_to_cv2(data, "8UC3")
     
@@ -51,23 +52,32 @@ def localize(data):
         msg.y_cordinate=y_cordinate
         timestamp=float(rospy.get_time())
         msg.timestamp=timestamp
-        msg.id=str(ids[i])
+        msg.id=str(1)
         if flag!=1:
-            for i in range(len(robotvelocity)):
-                if robotvelocity[i][0]==ids[i]:
-                    old_x=robotvelocity[i][1]
-                    old_y=robotvelocity[i][2]
-                    velocity=(((old_x-x_cordinate)**2+(old_y-y_cordinate)**2)**0.5)/(timestamp-robotvelocity[i][3]) # velocity control
-                    robotvelocity[i][1]=x_cordinate
-                    robotvelocity[i][2]=y_cordinate
-                    timestamp=float(rospy.get_time())
+            for j in range(len(robotvelocity)):
+                if robotvelocity[j][0]==ids[i]:
+                    old_x=robotvelocity[j][1]
+                    old_y=robotvelocity[j][2]
+                    velocity=(((old_x-x_cordinate)**2+(old_y-y_cordinate)**2)**0.5)/(timestamp-robotvelocity[j][3]) # velocity control
+                    robotvelocity[j][1]=x_cordinate
+                    robotvelocity[j][2]=y_cordinate
+                    robotvelocity[j][3]=float(rospy.get_time())
             
         else:
             robotvelocity.append([ids[i],x_cordinate,y_cordinate,timestamp])
         
 
         
-        robotvelocity
+        msg.velocity=velocity
+        pub.publish(msg)
+    #print(robotvelocity,ids)
+    if len(corners)<4:   #if none are detected
+        msg.x_cordinate=0
+        msg.y_cordinate=0
+        timestamp=float(rospy.get_time())
+        msg.timestamp=timestamp
+        msg.id=str(0)
+        msg.velocity=0
         pub.publish(msg)
     if len(corners)==0:   #if none are detected
         msg.x_cordinate=0
