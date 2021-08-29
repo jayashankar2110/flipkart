@@ -9,9 +9,9 @@ this node currently monitors feedback node and if feedback is not coming
 it will warn and if feedback node is killed then it switches robot to idle state
 """
 import rospy
+import rosnode
 from single_bot.msg import localizemsg
 from std_msgs.msg import String
-import rosnode
 from std_msgs.msg import Bool
 # nodes = ['/CentralMonitor',
 #         '/commu_node',
@@ -21,7 +21,6 @@ from std_msgs.msg import Bool
 #         '/rosout',
 #         '/state_identifier',
 #         '/unload_node']
-
 def callback(msg):
     rospy.loginfo(msg)
     return
@@ -29,13 +28,16 @@ def callback(msg):
 def talker():
     rospy.init_node('CentralControl')
     beat = rospy.Publisher('/heart_beat', Bool)
+    feed_msg = localizemsg()
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():
         pulse  =  True
         l = rosnode.get_node_names()
         if '/localization' in l:
-            rospy.logwarn('No msgs from localisation node..')   
-            pulse = False 
+            started = rospy.get_param('start_navigation')
+            if not started:
+                rospy.set_param('start_navigation', True)
+            pass
         else:
             rospy.set_param('start_navigation', False)
             rospy.logwarn('feedback node is inactive, switching to idle state')

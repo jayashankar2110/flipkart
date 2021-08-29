@@ -33,7 +33,7 @@ from single_bot.msg import com_msg
 
 from PID import PID
 import time as clock
-import threading
+
 import pdb
 # feedback msg
 dt  =rospy.get_param('ctrl_sampling')
@@ -157,54 +157,44 @@ class NavigationServer():
     def __init__(self):
         self.v = 0
         self.w = 0
-        self.c_state = None
-        self.bot_id = 0
-        self.bot_L = None
-        self._cancelRequest = False
-        self._feed_time = float(rospy.get_time())
-        self._goal_hold_time = 3.0 # in seconds
-
         self.action_feedback = state1Feedback()
         self.com_msg = com_msg() 
         #self._active_behavior_id = None
         self._feed_sub = rospy.Subscriber('/feedback',localizemsg,self._feed_cb)
         self._com_pub = rospy.Publisher('/commu', com_msg,queue_size=1)
         #self._status_sub = rospy.Subscriber('/Monitor', Status, self._status_cb) # to use robot ids 
-        self._as = actionlib.ActionServer('/Navigation',state1Action,goal_cb=self._goal_cb,cancel_cb = self._cancel_cb, auto_start=False)
+        self._as = actionlib.SimpleActionServer('/Navigation',state1Action,None,auto_start=False)
+        self._as.register_goal_callback(self._goal_cb)
+        self._as.register_preempt_callback(self._preempt_cb)
         self._as.start()
         rospy.loginfo("Navigation Server started")
     
     # call back functions
     def _feed_cb(self,msg):
-        self._feed_time = msg.timestamp
-        self.bot_id = msg.id
-        if self.bot_id != str(0):
-            self.c_state = [msg.x_cordinate,msg.y_cordinate,msg.angle,msg.velocity] 
+        if self._as.is_active() or self._as.is_new_goal_available():
+            global c_state
+            c_state = [msg.x_cordinate,msg.y_cordinate,msg.angle,msg.velocity]  #robot current state to update using subscriber cb
+        #rospy.loginfo(c_state)
+
     
-    def _cancel_cb(self,goal_handle):
-        rospy.logwarn('cancel request received')
-        self._cancelRequest = True
-    
-    def _preempt_cb(self,goal_handle):
+    def _preempt_cb(self):
         result = state1Result()
         rospy.loginfo("preempted")
         result.Reached = 'preempted'
         result.tElapsed = self.action_feedback.tElapsed
-        goal_handle.set_canceled(result)
+        self._as.set_preempted(result)
     
-    def _success_cb(self,goal_handle):
-        result = state1Result()
+    def _success_cb(self,result):
         rospy.loginfo("success")
         result.Reached = 'success' 
         result.tElapsed = self.action_feedback.tElapsed
-        goal_handle.set_succeeded(result)
+        self._as.set_succeeded(result)
 
-    def _abort_cb(self,goal_handle):
-        result = state1Result()
-        rospy.loginfo("aborted as feedback not updating")
+    def _abort_cb(self,result):
+        rospy.loginfo("aborted")
         result.Reached = 'aborted'
         result.tElapsed = self.action_feedback.tElapsed
-        goal_handle.set_aborted(result)
+        self._as.set_aborted(result)
     
     def proportional_control(self,target, current):
         v_pid.SetPoint=target
@@ -218,10 +208,7 @@ class NavigationServer():
             a =0
         self.w = self.v / WB * math.tan(delta) * dt
         self.v += a * dt
-        bot_vr = self.v + (self.bot_L*self.w)/2
-        bot_vl = self.v - (self.bot_L*self.w)/2
-
-        self._com_pub.publish(vr = bot_vr, vl = bot_vl,ifUnload = False)
+        self._com_pub.publish(v = self.v, w = self.w,ifUnload = False)
     
     def pure_pursuit_steer_control(self, state, trajectory, pind):
         #pdb.set_trace()
@@ -303,62 +290,58 @@ class NavigationServer():
         ry = np.array((ry)).astype(float)/scaling_factor
         return rx,ry
 
-    def process_goal(self,goal_handle):
-        goal = goal_handle.get_goal()
+    
+    def _goal_cb(self):
+        result = []
+        result = state1Result()
+        self.action_feedback = []
+        self.action_feedback = state1Feedback()
+
+        if self._as.is_active() or not self._as.is_new_goal_available():
+            return
+        
+        # accept goal and send it to navigate function, get action feedback message
+        rospy.loginfo('Received a new request to start navigation')# of bot: %s' % goal.behavior_name)
+        goal = self._as.accept_new_goal()
+
+        nh = self._as
+
         rate = rospy.Rate(1/dt)
         ax,ay = self.plan_path(goal)
         ds = 1.5*rospy.get_param('robot_radius') # way points distance
+        #pdb.set_trace()
         cx, cy, cyaw, ck, s = cubic_spline_planner.calc_spline_course(ax, ay, ds)
         wheelR = rospy.get_param('wheel_radius')
         motor_RPM = rospy.get_param('motor_max_speed')  # in RPM
         target_speed =  motor_RPM*0.10472*wheelR  # [m/s]
-        self.bot_L = rospy.get_param('wheel_base')
 
         T = rospy.get_param('duration')  # max simulation time
         
         lastIndex = len(cx) - 1
         # update initial state
+        global c_state
         if simulation:
-            self.c_state = rospy.get_param('c_state')
+            c_state = rospy.get_param('c_state')
         else:
-            if self.c_state is None:
-                self.c_state = rospy.get_param('c_state')
+            if c_state is None:
+                c_state = rospy.get_param('c_state')
         
-        state = State(x=self.c_state[0], y=self.c_state[1], yaw=self.c_state[2], v=self.c_state[3]) # we may update velocity via direct feeedback
+        state = State(x=c_state[0], y=c_state[1], yaw=c_state[2], v=0.0) # we may update velocity via direct feeedback
         
         # initialise parameters
         self.action_feedback.final_wpt_indx = lastIndex
         time = 0.0
-        
         if simulation:
             states = States()
             states.append(time, state)
-        
         target_course = TargetCourse(cx, cy)
         target_ind, _ = target_course.search_target_index(state)
         
-        preempted = False
-        abort = False
+
         while T >= time and lastIndex > target_ind and not rospy.is_shutdown():
-            # check if bot is under camera
-            while self.bot_id ==str(0)and not self._cancelRequest:
-                rospy.logwarn('No bot detected, navigation halted..')
-                rospy.sleep(1.0)
-            
-            #check if client requested to cancel goal
-            if self._cancelRequest:
-                self._cancelRequest = False
-                preempted = True
-                break
-            #check if feedback is updated
-            t = float(rospy.get_time())
-            if t - self._feed_time > self._goal_hold_time:
-                abort = True
-                break
-            rospy.loginfo(self._feed_time)
-            #start navigation
+            #uncomment for real feedback to update state in loop
             if not simulation:
-                state = State(x=self.c_state[0], y=self.c_state[1], yaw=self.c_state[2], v=self.c_state[3]) # we may update velocity via direct feeedback
+                state = State(x=c_state[0], y=c_state[1], yaw=c_state[2], v=0.0)
             
             # Calc control input
             ai = self.proportional_control(target_speed, state.v)
@@ -381,7 +364,7 @@ class NavigationServer():
             self.action_feedback.nextPose = [cx[target_ind], cy[target_ind]]
             self.action_feedback.deviation = state.calc_distance(cx[target_ind], cy[target_ind])
             #publish feedback using aciton server
-            goal_handle.publish_feedback(self.action_feedback)
+            nh.publish_feedback(self.action_feedback)
 
             if show_animation:  # pragma: no cover
                 plt.cla()
@@ -398,10 +381,8 @@ class NavigationServer():
                 plt.title("Speed[km/h]:" + str(state.v * 3.6)[:4])
                 plt.pause(0.001)
             
-        if preempted:
-            self._preempt_cb(goal_handle)
-        if abort:
-            self._abort_cb(goal_handle)
+            # feedback
+        
 
         if show_animation:  # pragma: no cover
             plt.cla()
@@ -421,29 +402,9 @@ class NavigationServer():
             plt.show()
 
         if  self.action_feedback.final_wpt_indx <= self.action_feedback.target_wpt_indx:
-            self._success_cb(goal_handle)   
+            self._success_cb(result)   
         # else:
-        #
-    
-    def _goal_cb(self,goal_handle):
-        result = []
-        result = state1Result()
-        self.action_feedback = []
-        self.action_feedback = state1Feedback()
-
-        # validate and receive goal request
-        rospy.loginfo('Received a new request to start navigation')# of bot: %s' % goal.behavior_name)
-
-        #validate goal name_space
-        goal_id = goal_handle.get_goal_id()
-        if goal_id is None:
-            goal_handle.set_rejected()
-            rospy.logwarn('Goal rejected as no goal id detected')
-            return
-        else:
-            goal_handle.set_accepted()
-            w = threading.Thread(name=str(goal_id),target=self.process_goal,args=(goal_handle,))
-            w.start()                 #self._abort_cb(result)
+        #         #self._abort_cb(result)
             
 
 if __name__ == '__main__':

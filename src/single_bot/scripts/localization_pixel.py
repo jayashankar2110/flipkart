@@ -95,6 +95,7 @@ def localize(frame,goodpts):
             msg.y_cordinate = center_b//27
             msg.angle = angle
             msg.id = iden
+            msg.timestamp = float(rospy.get_time())
             feed_pub.publish(msg)
             
             

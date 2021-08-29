@@ -49,27 +49,45 @@ def localize(data):
         y_cordinate=center_y//27 #calibrate to return in metters
         msg.x_cordinate=x_cordinate
         msg.y_cordinate=y_cordinate
-        msg.timestamp=float(rospy.get_time())
+        timestamp=float(rospy.get_time())
+        msg.timestamp=timestamp
         msg.id=str(ids[i])
         if flag!=1:
             for i in range(len(robotvelocity)):
                 if robotvelocity[i][0]==ids[i]:
                     old_x=robotvelocity[i][1]
                     old_y=robotvelocity[i][2]
-                    velocity=((old_x-x_cordinate)**2+(old_y-y_cordinate)**2)**0.5
+                    velocity=(((old_x-x_cordinate)**2+(old_y-y_cordinate)**2)**0.5)/(timestamp-robotvelocity[i][3]) # velocity control
                     robotvelocity[i][1]=x_cordinate
                     robotvelocity[i][2]=y_cordinate
+                    timestamp=float(rospy.get_time())
             
         else:
-            robotvelocity.append([ids[i],x_cordinate,y_cordinate])
+            robotvelocity.append([ids[i],x_cordinate,y_cordinate,timestamp])
+        
 
-
-        msg.velocity=velocity
+        
         robotvelocity
         pub.publish(msg)
+    if len(corners)==0:   #if none are detected
+        msg.x_cordinate=0
+        msg.y_cordinate=0
+        timestamp=float(rospy.get_time())
+        msg.timestamp=timestamp
+        msg.id=str(0)
+        msg.velocity=0
     #cv.imshow('test',detected_markers) debug output
     #cv.waitKey(20)
     
+
+
+
+    
+
+
+    
+    
+
     
 def talker():
    

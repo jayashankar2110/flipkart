@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-
+'''
+goal aborted then change status to idle
+'''
 import rospy
 import actionlib
 from single_bot.msg import state1Action
@@ -43,10 +45,10 @@ class state1Client:
         #    rospy.loginfo("aborting tracking path as bot is deviating")
         #    self.abortGoal()
 
-    def abortGoal(self):
+    def cancelGoal(self):
         rospy.sleep(2)
         self._ac.cancel_goal()
-        rospy.logwarn('Goal aborted')
+        rospy.logwarn('Goal canceled')
 
 def callback(msg,client):
     if msg.data == 'navigate':
@@ -62,10 +64,11 @@ def callback(msg,client):
         client.send_nav_goal(action_msg)
     
     if msg.data == 'Idle' and client.goal_sent == True:
-        client.abortGoal()
+        client.cancelGoal()
         client.goal_sent = False
     if msg.data == 'hold':
         #keep pending status.. (need to develop)
+        client.cancelGoal()
         pass
 
 def sim_callback(client):
