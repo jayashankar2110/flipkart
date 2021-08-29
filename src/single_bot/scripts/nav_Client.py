@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 '''
-goal aborted then change status to idle
+goal aborted then change status to idle. Can be done by 
+checking status code of result
 '''
 import rospy
 import actionlib
