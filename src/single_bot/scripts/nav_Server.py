@@ -28,18 +28,18 @@ from single_bot.msg import state1Result
 from single_bot.msg import state1Feedback
 from single_bot.msg import localizemsg
 from single_bot.msg import com_msg
+import dynamic_reconfigure.client
+
 
 from PID import PID
 import time as clock
 import pdb
-# feedback msg
-dt  =rospy.get_param('/ctrl_sampling')
-#global c_state
 
 # Parameters
 k = 0.1  # look forward gain
 Lfc = 1.0*rospy.get_param('/robot_radius')  # [m] look-ahead distance
 Kp = 0.5  # speed proportional gain
+global dt
 dt = rospy.get_param('/ctrl_sampling')  # [s] time tick
 WB = rospy.get_param('/wheel_base')  # [m] wheel base of vehicle
 
@@ -160,7 +160,7 @@ class NavigationServer():
         self._cancelRequest = False
         self._feed_time = float(rospy.get_time())
         self._goal_hold_time = 3.0 # in seconds
-
+        self._max_turning_angle = math.pi/3  # if change in angle is beyond this robot velocity will be not be updated
         self.action_feedback = state1Feedback()
         self.com_msg = com_msg() 
         #self._active_behavior_id = None
@@ -301,6 +301,7 @@ class NavigationServer():
         return rx,ry
 
     def process_goal(self,goal_handle):
+        param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
         goal = goal_handle.get_goal()
         rate = rospy.Rate(1/dt)
         ax,ay = self.plan_path(goal)
@@ -395,6 +396,10 @@ class NavigationServer():
                 plt.title("Speed[km/h]:" + str(state.v * 3.6)[:4])
                 plt.pause(0.001)
             
+            #tuning param loop delay comment once it is tuned
+            k = param_client.get_configuration(timeout=1)
+            loop_delay = float(k['loop_delay']) 
+            rospy.sleep(loop_delay)    
         if preempted:
             self._preempt_cb(goal_handle)
         if abort:

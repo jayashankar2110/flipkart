@@ -9,7 +9,7 @@ def callback(config):
 
 if __name__ == "__main__":
     rospy.init_node("dynamic_client")
-
+    
     client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
 
     r = rospy.Rate(0.1)

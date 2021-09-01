@@ -6,7 +6,7 @@ from dynamic_reconfigure.server import Server
 from single_bot.cfg import navigationConfig
 
 def callback(config, level):
-    rospy.loginfo("""Reconfigure Request: {start_navigation}""".format(**config))
+    rospy.loginfo("""Reconfigure Request: {start_navigation},{loop_delay}""".format(**config))
     return config
 
 if __name__ == "__main__":
