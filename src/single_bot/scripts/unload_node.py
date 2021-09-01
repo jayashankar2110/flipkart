@@ -13,7 +13,7 @@ from std_msgs.msg import String
 
 def unload_cb(msg,c_pub):
     time = 0.0
-    unloadTime = rospy.get_param('unload_time')
+    unloadTime = rospy.get_param('/unload_time')
     rate = rospy.Rate(2)
     rospy.loginfo(msg)
     if msg.data == 'unload':
@@ -36,13 +36,13 @@ def unload_cb(msg,c_pub):
                 isLoaded = False  #return tray to initial position
                 rospy.loginfo('unloaded and returning..')
                 
-                i_state = rospy.get_param('i_state')
-                f_state = rospy.get_param('f_state')
+                i_state = rospy.get_param('/i_state')
+                f_state = rospy.get_param('/f_state')
                 # update job_done at last
-                rospy.set_param('f_state', i_state)
-                rospy.set_param('i_state', f_state)
-                rospy.set_param('c_state', f_state)
-                rospy.set_param('job_done', True)     # indiates return state
+                rospy.set_param('/f_state', i_state)
+                rospy.set_param('/i_state', f_state)
+                rospy.set_param('/c_state', f_state)
+                rospy.set_param('/job_done', True)     # indiates return state
             rate.sleep()
     return
 

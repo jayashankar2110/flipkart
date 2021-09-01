@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   cv_bridge
+  dynamic_reconfigure
+
 )
 
 ## System dependencies are found with CMake's conventions
@@ -98,10 +100,10 @@ add_action_files(
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+ generate_dynamic_reconfigure_options(
+   cfg/dyn_params.cfg
+   #cfg/DynReconf2.cfg
+ )
 
 ###################################
 ## catkin specific configuration ##
@@ -143,8 +145,13 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/single_bot_node.cpp)
 
+# catkin_install_python(PROGRAMS
+# scripts/dyn_param_server.py
+# DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+
+#add_dependencies(dyn_param_server ${PROJECT_NAME}_gencfg)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -169,10 +176,6 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# catkin_install_python(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html

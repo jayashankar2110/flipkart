@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 '''
-goal aborted then change status to idle. Can be done by 
-checking status code of result
+Node changes startNavigation param to idicate idle status.
+use goal_sent Flag to avoid repeated cancel order.
 '''
 import rospy
 import actionlib
 from single_bot.msg import state1Action
 from single_bot.msg import state1Goal
 from std_msgs.msg import String
+import dynamic_reconfigure.client
 
 simulate = False
 
 class state1Client:
 
     def __init__(self):
-        self.goal_sent = False
+        self.goal_sent = False        
         self._ac = actionlib.SimpleActionClient('/Navigation',state1Action)
         self._ac.wait_for_server()
+        self._param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=1, config_callback=None)
+
         #self._pub = rospy.Publisher('/state1Status',String,queue_size=1)
         rospy.loginfo("Navigation server is up")
 
@@ -31,12 +34,21 @@ class state1Client:
         #rospy.loginfo("Success status is: ", status)
         #rospy.loginfo("Success result is: ",result)
         if result:
-            #self._pub.publish(result.Reached)
-            rospy.sleep(1.0)
-            rospy.loginfo('goal Reached')
+            rospy.sleep(0.5)
             self.goal_sent = False
-            f_state = rospy.get_param('f_state')
-            rospy.set_param('c_state', f_state)    # switch to unloding state
+            if status == 3:#success
+                rospy.loginfo('bot reached goal.. changing status to unload')
+                f_state = rospy.get_param('/f_state')
+                rospy.set_param('/c_state', f_state)    # switch to unloding state
+            if status ==4:#aborted
+                rospy.logwarn('Action aborted, no feedback')
+                self._param_client.update_configuration({"start_navigation":False})
+                #rospy.set_param('/start_navigation', False)
+            if status ==2:#preempted
+                rospy.logwarn('User cancled navigation')
+                self._param_client.update_configuration({"start_navigation":False})
+                #rospy.set_param('/start_navigation', False)  # this let commu node send zero velocities    
+        #self._param_client.get_configuration('')
         else:
             rospy.logwarn("None type results reached to client")
     
@@ -54,9 +66,9 @@ class state1Client:
 def callback(msg,client):
     if msg.data == 'navigate':
 
-        i_state = rospy.get_param('i_state')
-        g_state = rospy.get_param('f_state')
-        T = rospy.get_param('duration')  # max simulation time
+        i_state = rospy.get_param('/i_state')
+        g_state = rospy.get_param('/f_state')
+        T = rospy.get_param('/duration')  # max simulation time
         rospy.loginfo(msg)
         action_msg = state1Goal()
         action_msg.targetPose = g_state
@@ -67,15 +79,11 @@ def callback(msg,client):
     if msg.data == 'Idle' and client.goal_sent == True:
         client.cancelGoal()
         client.goal_sent = False
-    if msg.data == 'hold':
-        #keep pending status.. (need to develop)
-        client.cancelGoal()
-        pass
 
 def sim_callback(client):
-    i_state = rospy.get_param('i_state')
-    g_state = rospy.get_param('f_state')
-    T = rospy.get_param('duration')  # max simulation time
+    i_state = rospy.get_param('/i_state')
+    g_state = rospy.get_param('/f_state')
+    T = rospy.get_param('/duration')  # max simulation time
     action_msg = state1Goal()
     action_msg.targetPose = g_state
     action_msg.currentPose = i_state
@@ -86,6 +94,7 @@ def sim_callback(client):
 if __name__ == '__main__':
     rospy.init_node('nav_Client')
     client = state1Client()
+
     if not simulate:
         rospy.Subscriber('/state_id', String,callback,client)
     if simulate:

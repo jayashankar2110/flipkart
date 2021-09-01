@@ -12,8 +12,6 @@ goal msgs - inital and final positions for path planning and tracking float64[]
 result msgs - bool success, float64 tElapsed 
 feedback msgs - float64 tElapsed, float64 deviation, float64[] nextPose, string message
 
-#####ISSUES###
-TODO:  Need to give abort signal when feedback stops
 """
 import numpy as np
 import math
@@ -33,18 +31,17 @@ from single_bot.msg import com_msg
 
 from PID import PID
 import time as clock
-import threading
 import pdb
 # feedback msg
-dt  =rospy.get_param('ctrl_sampling')
+dt  =rospy.get_param('/ctrl_sampling')
 #global c_state
 
 # Parameters
 k = 0.1  # look forward gain
-Lfc = 1.0*rospy.get_param('robot_radius')  # [m] look-ahead distance
+Lfc = 1.0*rospy.get_param('/robot_radius')  # [m] look-ahead distance
 Kp = 0.5  # speed proportional gain
-dt = rospy.get_param('ctrl_sampling')  # [s] time tick
-WB = rospy.get_param('wheel_base')  # [m] wheel base of vehicle
+dt = rospy.get_param('/ctrl_sampling')  # [s] time tick
+WB = rospy.get_param('/wheel_base')  # [m] wheel base of vehicle
 
 
 simulation = True
@@ -260,15 +257,15 @@ class NavigationServer():
         rospy.loginfo("path planning started for given goal")
         a_star.show_animation = False
         # start and goal position
-        scaling_factor = rospy.get_param('mtrs2grid')
-        i_state = rospy.get_param('i_state')
+        scaling_factor = rospy.get_param('/mtrs2grid')
+        i_state = rospy.get_param('/i_state')
         sx = int(i_state[0]*scaling_factor)
         sy = int(i_state[1]*scaling_factor)
-        g_state = rospy.get_param('f_state')
+        g_state = rospy.get_param('/f_state')
         gx = int(g_state[0]*scaling_factor) 
         gy = int(g_state[1]*scaling_factor)
-        grid_size = int(rospy.get_param('grid_size')*scaling_factor) 
-        robot_radius = int(rospy.get_param('robot_radius')*scaling_factor) 
+        grid_size = int(rospy.get_param('/grid_size')*scaling_factor) 
+        robot_radius = int(rospy.get_param('/robot_radius')*scaling_factor) 
 
         # set obstacle positions currently in grid scale
         ox, oy = [], []
@@ -307,22 +304,22 @@ class NavigationServer():
         goal = goal_handle.get_goal()
         rate = rospy.Rate(1/dt)
         ax,ay = self.plan_path(goal)
-        ds = 1.5*rospy.get_param('robot_radius') # way points distance
+        ds = 1.5*rospy.get_param('/robot_radius') # way points distance
         cx, cy, cyaw, ck, s = cubic_spline_planner.calc_spline_course(ax, ay, ds)
-        wheelR = rospy.get_param('wheel_radius')
-        motor_RPM = rospy.get_param('motor_max_speed')  # in RPM
+        wheelR = rospy.get_param('/wheel_radius')
+        motor_RPM = rospy.get_param('/motor_max_speed')  # in RPM
         target_speed =  motor_RPM*0.10472*wheelR  # [m/s]
-        self.bot_L = rospy.get_param('wheel_base')
+        self.bot_L = rospy.get_param('/wheel_base')
 
-        T = rospy.get_param('duration')  # max simulation time
+        T = rospy.get_param('/duration')  # max simulation time
         
         lastIndex = len(cx) - 1
         # update initial state
         if simulation:
-            self.c_state = rospy.get_param('c_state')
+            self.c_state = rospy.get_param('/c_state')
         else:
             if self.c_state is None:
-                self.c_state = rospy.get_param('c_state')
+                self.c_state = rospy.get_param('/c_state')
         
         state = State(x=self.c_state[0], y=self.c_state[1], yaw=self.c_state[2], v=self.c_state[3]) # we may update velocity via direct feeedback
         
@@ -442,9 +439,8 @@ class NavigationServer():
             return
         else:
             goal_handle.set_accepted()
-            w = threading.Thread(name=str(goal_id),target=self.process_goal,args=(goal_handle,))
-            w.start()                 #self._abort_cb(result)
-            
+            self.process_goal(goal_handle)                 #self._abort_cb(result)
+        return    
 
 if __name__ == '__main__':
     rospy.init_node('nav_Server')

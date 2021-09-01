@@ -13,6 +13,8 @@ import rosnode
 from single_bot.msg import localizemsg
 from std_msgs.msg import String
 from std_msgs.msg import Bool
+import dynamic_reconfigure.client
+
 # nodes = ['/CentralMonitor',
 #         '/commu_node',
 #         '/localization',
@@ -27,6 +29,7 @@ def callback(msg):
 
 def talker():
     rospy.init_node('CentralControl')
+    _param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
     beat = rospy.Publisher('/heart_beat', Bool)
     feed_msg = localizemsg()
     rate = rospy.Rate(1)
@@ -34,12 +37,10 @@ def talker():
         pulse  =  True
         l = rosnode.get_node_names()
         if '/localization' in l:
-            started = rospy.get_param('start_navigation')
-            if not started:
-                rospy.set_param('start_navigation', True)
             pass
         else:
-            rospy.set_param('start_navigation', False)
+            _param_client.update_configuration({"start_navigation":False})
+            #rospy.set_param('/start_navigation', False)
             rospy.logwarn('feedback node is inactive, switching to idle state')
             pulse=False
         beat.publish(pulse)
