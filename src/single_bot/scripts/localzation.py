@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from localizataion.msg import localizemsg
+from single_bot.msg import localizemsg
 import cv2 as cv
 import math
 import numpy as np
@@ -71,14 +71,6 @@ def localize(data):
         msg.velocity=velocity
         pub.publish(msg)
     #print(robotvelocity,ids)
-    if len(corners)<4:   #if none are detected
-        msg.x_cordinate=0
-        msg.y_cordinate=0
-        timestamp=float(rospy.get_time())
-        msg.timestamp=timestamp
-        msg.id=str(0)
-        msg.velocity=0
-        pub.publish(msg)
     if len(corners)==0:   #if none are detected
         msg.x_cordinate=0
         msg.y_cordinate=0
@@ -86,6 +78,10 @@ def localize(data):
         msg.timestamp=timestamp
         msg.id=str(0)
         msg.velocity=0
+    realtime=str(rospy.get_time())
+    image = cv.putText(detected_markers, realtime, (50,50 ), cv.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 2, cv.LINE_AA)
+    cv.imshow('test',image) #debug output
+    cv.waitKey(10)
     #cv.imshow('test',detected_markers) debug output
     #cv.waitKey(20)
     
@@ -109,7 +105,7 @@ def talker():
     #res = cv.warpPerspective(old_frame, matrix, (600, 280))
     
     global pub
-    rospy.init_node('listener', anonymous=True)
+    rospy.init_node('localzation', anonymous=True)
 
     rospy.Subscriber("image_topic", Image, localize)
     pub = rospy.Publisher('/feedback', localizemsg, queue_size=10)

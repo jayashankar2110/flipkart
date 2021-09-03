@@ -6,6 +6,7 @@
     <node name = "my_rqt_dashboard" pkg = "rqt_gui" type = "rqt_gui" respawn = "false" output = "screen"/>
     <node pkg="single_bot" name="nav_Client" type="nav_Client.py"/>
     <node pkg="single_bot" name="nav_Server" type="nav_Server.py"/>
+    <node pkg="single_bot" name="localzation" type="localzation.py"/>
     <node pkg="single_bot" name="state_identifier" type="state_identifier.py"/>
     <node pkg="single_bot" name="commu_node" type="commu_node.py"/>
     <node pkg="single_bot" name="unload_node" type="unload_node.py"/>

@@ -60,7 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    localizemsg.msg 
    com_msg.msg
-   commu.msg
+   robot_msg.msg
    )
 
 ## Generate services in the 'srv' folder
