@@ -3,5 +3,9 @@
     "python.autoComplete.extraPaths": [
         "/home/mady/MEGA/robotics_club/Flipkart/ROS-git/Flipkart_central_control/devel/lib/python2.7/dist-packages",
         "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/mady/MEGA/robotics_club/Flipkart/ROS-git/Flipkart_central_control/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
     ]
 }

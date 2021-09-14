@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 takes message in format 
@@ -25,15 +25,20 @@ ctl_msg0 = robot_msg(x=0,y=0,isUnload=False)
 def callback(ctl_msg,robot):
     r=0.1  #radius
     l=1 #lenght
-    x= (r/2)*(ctl_msg.vl+ctl_msg.vr)
-    y=(r/l)*(ctl_msg.vl-ctl_msg.vr)
-    msg_robot =robot_msg(x=x,y=y,isUnload=ctl_msg.isUnload)
+    #x= (r/2)*(ctl_msg.vl+ctl_msg.vr)
+    x=ctl_msg.v
+    y=ctl_msg.w
+    #y=(r/l)*(ctl_msg.vl-ctl_msg.vr)
+    x=0.1*0.33
+    msg_robot =robot_msg(x=x,y=y,isUnload=ctl_msg.ifUnload)
     if idle_state:
-        msg_robot =robot_msg(x=0,y=0,isUnload=ctl_msg.isUnload) 
+        msg_robot =robot_msg(x=0,y=0,isUnload=ctl_msg.ifUnload) 
         pass
-    
+    print(x)
+    print(y)
     #send message to bot
     robot.publish(msg_robot)
+
     # save previous control input for future developments
     ctl_msg0 = ctl_msg
     return

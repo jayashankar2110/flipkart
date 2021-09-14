@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 
@@ -20,7 +20,7 @@ def unload_cb(msg,c_pub):
         rospy.loginfo('Target reached and unloading started')
         # send signal to commu node for unloading 
         isLoaded = True
-        c_pub.publish(vr = 0.0,vl=0.0,isLoaded=True,ifUnload=True,msg_frm_bot = False)
+        c_pub.publish(v = 0.0,w=0.0,isLoaded=True,ifUnload=True,msg_frm_bot = False)
         #wait for commu node msg
         while isLoaded and not rospy.is_shutdown():
             try:

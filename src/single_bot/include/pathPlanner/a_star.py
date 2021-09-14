@@ -12,6 +12,7 @@ See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import pdb
 show_animation = True
 
 
@@ -67,9 +68,11 @@ class AStarPlanner:
                                self.calc_xy_index(sy, self.min_y), 0.0, -1)
         goal_node = self.Node(self.calc_xy_index(gx, self.min_x),
                               self.calc_xy_index(gy, self.min_y), 0.0, -1)
-
+        print(start_node)
+        print(goal_node)
         open_set, closed_set = dict(), dict()
         open_set[self.calc_grid_index(start_node)] = start_node
+        print(open_set)
 
         while 1:
             if len(open_set) == 0:
@@ -113,6 +116,7 @@ class AStarPlanner:
                                  current.y + self.motion[i][1],
                                  current.cost + self.motion[i][2], c_id)
                 n_id = self.calc_grid_index(node)
+                #pdb.set_trace()
 
                 # If the node is not safe, do nothing
                 if not self.verify_node(node):
@@ -182,12 +186,14 @@ class AStarPlanner:
             return False
 
         # collision check
+        
         if self.obstacle_map[node.x][node.y]:
             return False
 
         return True
 
     def calc_obstacle_map(self, ox, oy):
+        #pdb.set_trace()
 
         self.min_x = int(min(ox))
         self.min_y = int(min(oy))
@@ -231,52 +237,57 @@ class AStarPlanner:
         return motion
 
 
-# def main():
-#     print(__file__ + " start!!")
-#     # start and goal position
-#     sx = 10.0  # [m]
-#     sy = 10.0  # [m]
-#     gx = 50.0  # [m]
-#     gy = 50.0  # [m]
-#     grid_size = 2.0  # [m]
-#     robot_radius = 1.0  # [m]
+def main():
+    print(__file__ + " start!!")
+    # start and goal position
+    sx = int(1.3*328.7 ) # [m]
+    sy = int(1.47*328.7 ) # [m]
+    gx = int(0.15*328.7) # [m]
+    gy = int(0.15*328.7) # [m]
+    grid_size =int( 0.15*328.7)  # [m]
+    robot_radius = int(0.01*328.7 )# [m]
 
-#     # set obstacle positions
-#     ox, oy = [], []
-#     for i in range(-10, 60):
-#         ox.append(i)
-#         oy.append(-10.0)
-#     for i in range(-10, 60):
-#         ox.append(60.0)
-#         oy.append(i)
-#     for i in range(-10, 61):
-#         ox.append(i)
-#         oy.append(60.0)
-#     for i in range(-10, 61):
-#         ox.append(-10.0)
-#         oy.append(i)
-#     for i in range(-10, 40):
-#         ox.append(20.0)
-#         oy.append(i)
-#     for i in range(0, 40):
-#         ox.append(40.0)
-#         oy.append(60.0 - i)
+    ox, oy = [], []
+    for i in range(0,1000):
+        ox.append(i)
+        oy.append(0)
+    for i in range(0, 500):
+        ox.append(1000.0)
+        oy.append(i)
+    for i in range(0,1001):
+        ox.append(i)
+        oy.append(500)
+    for i in range(0, 501):
+        ox.append(0)
+        oy.append(i)
+    for i in range(0, 400):
+        ox.append(400)
+        oy.append(500.0 - i)
+    for i in range(0, 400):
+        ox.append(600)
+        oy.append(500.0 - i)
+    for i in range(0,401):
+        ox.append(i)
+        oy.append(100)
+    for i in range(0,401):
+        ox.append(1000-i)
+        oy.append(100)
 
-#     if show_animation:  # pragma: no cover
-#         plt.plot(ox, oy, ".k")
-#         plt.plot(sx, sy, "og")
-#         plt.plot(gx, gy, "xb")
-#         plt.grid(True)
-#         plt.axis("equal")
+    if show_animation:  # pragma: no cover
+        plt.plot(ox, oy, ".k")
+        plt.plot(sx, sy, "og")
+        plt.plot(gx, gy, "xb")
+        plt.grid(True)
+        plt.axis("equal")
 
-#     a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
-#     rx, ry = a_star.planning(sx, sy, gx, gy)
+    a_star = AStarPlanner(ox, oy, grid_size, robot_radius)
+    rx, ry = a_star.planning(sx, sy, gx, gy)
 
-#     if show_animation:  # pragma: no cover
-#         plt.plot(rx, ry, "-r")
-#         plt.pause(0.001)
-#         plt.show()
+    if show_animation:  # pragma: no cover
+        plt.plot(rx, ry, "-r")
+        plt.pause(0.001)
+        plt.show()
 
 
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()

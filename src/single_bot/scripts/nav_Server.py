@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 
 Path tracking simulation with pure pursuit steering and PID speed control.
@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import rospy
 import actionlib
 import rospy
+
 from CubicSpline import cubic_spline_planner
 from pathPlanner import a_star
 
@@ -44,7 +45,7 @@ dt = rospy.get_param('/ctrl_sampling')  # [s] time tick
 WB = rospy.get_param('/wheel_base')  # [m] wheel base of vehicle
 
 
-simulation = True
+simulation = False
 
 if simulation:
     show_animation = True
@@ -55,7 +56,7 @@ yaw_pid = PID.PID(1, 0, 0,clock.time())
 yaw_pid.SetPoint=0.0
 yaw_pid.setSampleTime(dt)
 
-v_pid = PID.PID(1, 0, 0,clock.time())
+v_pid = PID.PID(0.01, 0, 0,clock.time())
 v_pid.SetPoint=0.0
 v_pid.setSampleTime(dt)
 
@@ -176,7 +177,8 @@ class NavigationServer():
         self._feed_time = msg.timestamp
         self.bot_id = msg.id
         if self.bot_id != str(0):
-            self.c_state = [msg.x_cordinate,msg.y_cordinate,msg.angle,msg.velocity] 
+            self.c_state = [msg.x_cordinate,msg.y_cordinate,msg.angle,msg.velocity]
+            rospy.loginfo(msg.velocity) 
     
     def _cancel_cb(self,goal_handle):
         rospy.logwarn('cancel request received')
@@ -217,8 +219,10 @@ class NavigationServer():
         self.v += a * dt
         bot_vr = self.v + (self.bot_L*self.w)/2
         bot_vl = self.v - (self.bot_L*self.w)/2
+        #rospy.loginfo(bot_vr)
+        #rospy.loginfo(bot_vl)
 
-        self._com_pub.publish(vr = bot_vr, vl = bot_vl,ifUnload = False)
+        self._com_pub.publish(v = self.v, w = self.w,ifUnload = False)
     
     def pure_pursuit_steer_control(self, state, trajectory, pind):
         #pdb.set_trace()
@@ -304,9 +308,18 @@ class NavigationServer():
         param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
         goal = goal_handle.get_goal()
         rate = rospy.Rate(1/dt)
-        ax,ay = self.plan_path(goal)
+        #ax,ay = self.plan_path(goal)
+        #pdb.set_trace()
+        ax=[10,9,8,7,6,5,4,3,2,2,2,2,2,2,2,2,2,2,2]
+        ay=[10,10,10,10,10,10,10,10,10,9,8,7,6,5,4,3,2,1,0]
+        ax=np.dot(ax,0.3)
+        ay=np.dot(ay,0.3)
+        #rospy.loginfo(str(ax))
+        #rospy.loginfo(str(ay))
+        #pdb.set_trace()
         ds = 1.5*rospy.get_param('/robot_radius') # way points distance
         cx, cy, cyaw, ck, s = cubic_spline_planner.calc_spline_course(ax, ay, ds)
+        #pdb.set_trace()
         wheelR = rospy.get_param('/wheel_radius')
         motor_RPM = rospy.get_param('/motor_max_speed')  # in RPM
         target_speed =  motor_RPM*0.10472*wheelR  # [m/s]
@@ -353,7 +366,7 @@ class NavigationServer():
             if t - self._feed_time > self._goal_hold_time:
                 abort = True
                 break
-            rospy.loginfo(self._feed_time)
+            #rospy.loginfo(self._feed_time)
             #start navigation
             if not simulation:
                 state = State(x=self.c_state[0], y=self.c_state[1], yaw=self.c_state[2], v=self.c_state[3]) # we may update velocity via direct feeedback
