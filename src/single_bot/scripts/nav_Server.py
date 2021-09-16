@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 
 Path tracking simulation with pure pursuit steering and PID speed control.
@@ -211,12 +211,32 @@ class NavigationServer():
         result.tElapsed = self.action_feedback.tElapsed
         goal_handle.set_aborted(result)
     
-    def proportional_control(self,target, current):
-        v_pid.SetPoint=target
-        v_pid.update(current,clock.time())
-        a = v_pid.output
-        #a = Kp * (target - current)
-        return a
+    def proportional_control(self,target, current,Kp):
+        windup_guard = 20.0
+        error = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
+        self.current_time = clock.time()
+        delta_time = self.current_time - self.last_time
+        delta_error = error - self.last_error
+
+        if (delta_time >= dt):
+            PTerm = Kp * error
+            # ITerm=0
+            # ITerm += error * delta_time
+
+            # if ( ITerm < windup_guard):
+            #     ITerm = -windup_guard
+            # elif (ITerm > windup_guard):
+            #     ITerm=windup_guard
+            # DTerm = 0.0
+            # if delta_time > 0:
+            #     DTerm = delta_error / delta_time
+
+            # Remember last time and last error for next calculation
+            self.last_time = self.current_time
+            self.last_error = error
+
+            output = PTerm
+            return output
     def wrap2PI(self,angle):
         angle = (angle + np.pi) % (2 * np.pi) - np.pi
 
@@ -298,14 +318,15 @@ class NavigationServer():
         kp = float(k['yaw_p']) 
         ki = float(k['yaw_i']) 
         kd = float(k['yaw_d']) 
+        kv= float(k['vel_p']) 
 
-        
+        print(kv)
         delta = self.control(0,alpha,kp,ki,kd)
         
         target_pose = [tx,ty]
-        currest_pose = [state.x,state.y]
+        curr_pose = [state.x,state.y]
 
-        ai = self.proportional_control(target_pose,curr_pose )
+        ai = self.proportional_control(target_pose,curr_pose,kv)
 
         #pdb.set_trace()
         #yaw_pid.update(alpha,clock.time())
