@@ -15,11 +15,16 @@ pub=None
 x_ar=[]
 y_ar=[]
 def find_angle(a,b,center_a,center_b):
-    angle=math.atan2((center_a-a),(center_b-b))
-    if angle<0:
-        angle=angle+2*math.pi
+    print(a,b)
+    print(center_a,center_b)
 
-    angledg=math.degrees(angle)
+    angle=math.atan2((b-center_b),(a-center_a))
+    print(angle)
+    #angle=angle+(math.pi/2)
+    #if angle<0:
+    #    angle=angle+2*math.pi
+
+    #angledg=math.degrees(angle)
     return angle
 def localize(data,image_pub):
     global robotvelocity
@@ -32,7 +37,7 @@ def localize(data,image_pub):
 
 	# load the ArUCo dictionary, grab the ArUCo parameters, and detect
 	# the markers
-    print("Detecting '{}' tags....".format('DICT_5X5_100'))
+    #print("Detecting '{}' tags....".format('DICT_5X5_100'))
     arucoDict = cv.aruco.Dictionary_get(ARUCO_DICT['DICT_5X5_100'])
     arucoParams = cv.aruco.DetectorParameters_create()
     corners, ids, rejected = cv.aruco.detectMarkers(image, arucoDict, parameters=arucoParams)
@@ -53,15 +58,17 @@ def localize(data,image_pub):
         head_x=(corners[i][0][0][0] + corners[i][0][1][0]) //2
         head_y=(corners[i][0][0][1] + corners[i][0][1][1])//2
         detected_markers=cv.arrowedLine(detected_markers,(int(center_x),int(center_y)) , (int(head_x),int(head_y)),(0, 255, 255), 3)
-        angle=find_angle(head_x,head_y,center_x,center_y)
+        
         center_y=rows-center_y
-        print(rows)
-        print(center_y)
+        head_y=rows-head_y
+        #print(rows)
+        #print(center_y)
+        angle=find_angle(head_x,head_y,center_x,center_y)
 
         msg.angle=angle
-        x_cordinate=center_x/351 #calibrate to return in metters
+        x_cordinate=center_x/200 #calibrate to return in metters
         
-        y_cordinate=center_y/325#calibrate to return in metters
+        y_cordinate=center_y/225#calibrate to return in metters
         msg.x_cordinate=x_cordinate
         msg.y_cordinate=y_cordinate
         
@@ -85,7 +92,7 @@ def localize(data,image_pub):
 
         
         msg.velocity=velocity
-        rospy.loginfo(msg)
+        #rospy.loginfo(msg)
         x_ar.append(x_cordinate)
         y_ar.append(y_cordinate)
         pub.publish(msg)
@@ -144,7 +151,5 @@ if __name__ == '__main__':
         #m=np.mean(x_ar)
         #print(m)
         #print(y_ar)
-        plt.plot(x_ar,y_ar,'r.')
-        plt.show()
     except rospy.ROSInterruptException:
         pass

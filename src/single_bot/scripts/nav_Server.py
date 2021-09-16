@@ -19,9 +19,9 @@ import matplotlib.pyplot as plt
 import rospy
 import actionlib
 import rospy
-
 from CubicSpline import cubic_spline_planner
 from pathPlanner import a_star
+from rospy.core import loginfo
 
 from single_bot.msg import state1Action
 from single_bot.msg import state1Goal
@@ -56,7 +56,7 @@ yaw_pid = PID.PID(1, 0, 0,clock.time())
 yaw_pid.SetPoint=0.0
 yaw_pid.setSampleTime(dt)
 
-v_pid = PID.PID(0.01, 0, 0,clock.time())
+v_pid = PID.PID(1, 0, 0,clock.time())
 v_pid.SetPoint=0.0
 v_pid.setSampleTime(dt)
 
@@ -71,10 +71,6 @@ class State:
         # self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
 
     def update(self, a, delta):
-        if delta >= math.pi/3:
-            v =0
-            a =0
-        
         self.x += self.v * math.cos(self.yaw) * dt
         self.y += self.v * math.sin(self.yaw) * dt
         self.yaw += self.v / WB * math.tan(delta) * dt
@@ -130,6 +126,7 @@ class TargetCourse:
             distance_this_index = state.calc_distance(self.cx[ind],
                                                       self.cy[ind])
             while True:
+                ##rospy.logwarn("searching...")
                 distance_next_index = state.calc_distance(self.cx[ind + 1],
                                                           self.cy[ind + 1])
                 if distance_this_index < distance_next_index:
@@ -142,12 +139,12 @@ class TargetCourse:
 
         # search look ahead target point index
         while Lf > state.calc_distance(self.cx[ind], self.cy[ind]):
+            ##rospy.logwarn("look ahead")
             if (ind + 1) >= len(self.cx):
                 break  # not exceed goal
             ind += 1
             #rospy.loginfo(ind)
         return ind, Lf
-
 
 
 
@@ -164,24 +161,33 @@ class NavigationServer():
         self._max_turning_angle = math.pi/3  # if change in angle is beyond this robot velocity will be not be updated
         self.action_feedback = state1Feedback()
         self.com_msg = com_msg() 
+        self.current_time = clock.time()
+        self.last_time = clock.time()
+        self.last_error = 0
+
         #self._active_behavior_id = None
         self._feed_sub = rospy.Subscriber('/feedback',localizemsg,self._feed_cb)
         self._com_pub = rospy.Publisher('/commu', com_msg,queue_size=1)
         #self._status_sub = rospy.Subscriber('/Monitor', Status, self._status_cb) # to use robot ids 
         self._as = actionlib.ActionServer('/Navigation',state1Action,goal_cb=self._goal_cb,cancel_cb = self._cancel_cb, auto_start=False)
+        self.param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
         self._as.start()
         rospy.loginfo("Navigation Server started")
     
+
     # call back functions
     def _feed_cb(self,msg):
         self._feed_time = msg.timestamp
         self.bot_id = msg.id
         if self.bot_id != str(0):
-            self.c_state = [msg.x_cordinate,msg.y_cordinate,msg.angle,msg.velocity]
-            rospy.loginfo(msg.velocity) 
+            
+            self.c_state = [msg.x_cordinate,msg.y_cordinate,msg.angle,msg.velocity] 
+            #yaw = self.wrap2PI(float(msg.angle))
+
+
     
     def _cancel_cb(self,goal_handle):
-        rospy.logwarn('cancel request received')
+        ##rospy.logwarn('cancel request received')
         self._cancelRequest = True
     
     def _preempt_cb(self,goal_handle):
@@ -211,18 +217,47 @@ class NavigationServer():
         a = v_pid.output
         #a = Kp * (target - current)
         return a
+    def wrap2PI(self,angle):
+        angle = (angle + np.pi) % (2 * np.pi) - np.pi
+
+        return angle
+    
+    def control(self,SetPoint,feedback_value,Kp,Ki,Kd):
+        windup_guard = 20.0
+        error = SetPoint - feedback_value
+        self.current_time = clock.time()
+        delta_time = self.current_time - self.last_time
+        delta_error = error - self.last_error
+
+        if (delta_time >= dt):
+            PTerm = Kp * error
+            ITerm=0
+            ITerm += error * delta_time
+
+            if ( ITerm < windup_guard):
+                ITerm = -windup_guard
+            elif (ITerm > windup_guard):
+                ITerm=windup_guard
+            DTerm = 0.0
+            if delta_time > 0:
+                DTerm = delta_error / delta_time
+
+            # Remember last time and last error for next calculation
+            self.last_time = self.current_time
+            self.last_error = error
+
+            output = PTerm + (Ki * ITerm) + (Kd * DTerm)
+            return output
     
     def send_ctrl(self, a, delta):
-        if delta >= math.pi/3:
-            a =0
-        self.w = self.v / WB * math.tan(delta) * dt
+        # if delta >= math.pi/3:
+        #     a =0
+        self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
         self.v += a * dt
-        bot_vr = self.v + (self.bot_L*self.w)/2
-        bot_vl = self.v - (self.bot_L*self.w)/2
-        #rospy.loginfo(bot_vr)
-        #rospy.loginfo(bot_vl)
-
+        # bot_vr = self.v + (self.bot_L*self.w)/2
+        # bot_vl = self.v - (self.bot_L*self.w)/2
         self._com_pub.publish(v = self.v, w = self.w,ifUnload = False)
+        #self._com_pub.publish(vr = bot_vr, vl = bot_vl,ifUnload = False)
     
     def pure_pursuit_steer_control(self, state, trajectory, pind):
         #pdb.set_trace()
@@ -237,10 +272,38 @@ class NavigationServer():
             tx = trajectory.cx[-1]
             ty = trajectory.cy[-1]
             ind = len(trajectory.cx) - 1
+        print(tx,ty)
         
-        alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw 
+        # alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw 
 
-        delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
+        # delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
+        #pdb.set_trace()
+        theta = state.yaw
+        #theta_r = math.atan2(ty - state.y, tx - state.x)
+        T = [[math.cos(theta),math.sin(theta)],[-math.sin(theta),math.cos(theta)]]
+        
+        #ref_pos = np.dot(T,[[tx],[ty]])
+        #ref_pos = np.dot(T,[[tx],[ty]]) - [[state.x],[state.y]]
+        ref_pos = np.dot(T,[[tx-state.x],[ty-state.y]])
+        alpha = math.atan2(ref_pos[1], ref_pos[0])
+        rospy.loginfo(alpha)
+        if alpha > math.pi/3:
+            alpha = math.pi/3
+        
+        #k = self.param_client.get_configuration(timeout=1)
+        #yaw_pid.setKp = float(k['yaw_p']) 
+        #yaw_pid.setKi = float(k['yaw_i']) 
+        #yaw_pid.setKd= float(k['yaw_d']) 
+        k = self.param_client.get_configuration(timeout=1)
+        kp = float(k['yaw_p']) 
+        ki = float(k['yaw_i']) 
+        kd = float(k['yaw_d']) 
+
+        
+        delta = self.control(0,alpha,kp,ki,kd)
+        #pdb.set_trace()
+        #yaw_pid.update(alpha,clock.time())
+        #delta = yaw_pid.output 
         return delta, ind
 
 
@@ -270,7 +333,7 @@ class NavigationServer():
         gy = int(g_state[1]*scaling_factor)
         grid_size = int(rospy.get_param('/grid_size')*scaling_factor) 
         robot_radius = int(rospy.get_param('/robot_radius')*scaling_factor) 
-
+        
         # set obstacle positions currently in grid scale
         ox, oy = [], []
         for i in range(0,100):
@@ -305,21 +368,22 @@ class NavigationServer():
         return rx,ry
 
     def process_goal(self,goal_handle):
-        param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
         goal = goal_handle.get_goal()
         rate = rospy.Rate(1/dt)
         #ax,ay = self.plan_path(goal)
-        #pdb.set_trace()
-        ax=[10,9,8,7,6,5,4,3,2,2,2,2,2,2,2,2,2,2,2]
-        ay=[10,10,10,10,10,10,10,10,10,9,8,7,6,5,4,3,2,1,0]
-        ax=np.dot(ax,0.3)
-        ay=np.dot(ay,0.3)
+        scaling_factor = rospy.get_param('/mtrs2grid')
+        #ay=np.array([7,7,7,7,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2])
+        #ax=np.array([10,10,10,10,10,10,10,10,10,5,5,5,5,5,1,1,1,1,1])
+        ax=np.array([10,10,5,1])
+        ay=np.array([7,2,2,2])
+        cx=(ax-1)*0.15
+        cy=(ay-1)*0.15
         #rospy.loginfo(str(ax))
         #rospy.loginfo(str(ay))
         #pdb.set_trace()
         ds = 1.5*rospy.get_param('/robot_radius') # way points distance
-        cx, cy, cyaw, ck, s = cubic_spline_planner.calc_spline_course(ax, ay, ds)
-        #pdb.set_trace()
+        #cx, cy, cyaw, ck, s = cubic_spline_planner.calc_spline_course(ax, ay, ds)
+
         wheelR = rospy.get_param('/wheel_radius')
         motor_RPM = rospy.get_param('/motor_max_speed')  # in RPM
         target_speed =  motor_RPM*0.10472*wheelR  # [m/s]
@@ -350,7 +414,9 @@ class NavigationServer():
         
         preempted = False
         abort = False
-        while T >= time and lastIndex > target_ind and not rospy.is_shutdown():
+        #while T >= time and lastIndex > target_ind and not rospy.is_shutdown():
+        while not rospy.is_shutdown():
+
             # check if bot is under camera
             while self.bot_id ==str(0)and not self._cancelRequest:
                 rospy.logwarn('No bot detected, navigation halted..')
@@ -364,22 +430,25 @@ class NavigationServer():
             #check if feedback is updated
             t = float(rospy.get_time())
             if t - self._feed_time > self._goal_hold_time:
+                rospy.logwarn("feedback not updated")
                 abort = True
                 break
-            #rospy.loginfo(self._feed_time)
+            
             #start navigation
             if not simulation:
                 state = State(x=self.c_state[0], y=self.c_state[1], yaw=self.c_state[2], v=self.c_state[3]) # we may update velocity via direct feeedback
-            
+                #rospy.loginfo(state.yaw)
             # Calc control input
+            #rospy.logwarn("123")
             ai = self.proportional_control(target_speed, state.v)
             di, target_ind = self.pure_pursuit_steer_control(state, target_course, target_ind)
-            
+            #rospy.logwarn("456")
             #update way_point index in feedback msg
             self.action_feedback.target_wpt_indx = target_ind
             
             state.update(ai, di)  #update inital states
             self.send_ctrl(ai,di) #send control input to commu node
+            ##rospy.logwarn("send control")
 
             # update time elapsed
             time += dt 
@@ -410,7 +479,7 @@ class NavigationServer():
                 plt.pause(0.001)
             
             #tuning param loop delay comment once it is tuned
-            k = param_client.get_configuration(timeout=1)
+            k = self.param_client.get_configuration(timeout=1)
             loop_delay = float(k['loop_delay']) 
             rospy.sleep(loop_delay)    
         if preempted:
@@ -438,7 +507,7 @@ class NavigationServer():
         if  self.action_feedback.final_wpt_indx <= self.action_feedback.target_wpt_indx:
             self._success_cb(goal_handle)   
         # else:
-        #
+        rospy.loginfo("while end")
     
     def _goal_cb(self,goal_handle):
         result = []
@@ -448,20 +517,12 @@ class NavigationServer():
 
         # validate and receive goal request
         rospy.loginfo('Received a new request to start navigation')# of bot: %s' % goal.behavior_name)
-
-        #validate goal name_space
-        goal_id = goal_handle.get_goal_id()
-        if goal_id is None:
-            goal_handle.set_rejected()
-            rospy.logwarn('Goal rejected as no goal id detected')
-            return
-        else:
-            goal_handle.set_accepted()
-            self.process_goal(goal_handle)                 #self._abort_cb(result)
+        
+        goal_handle.set_accepted()
+        self.process_goal(goal_handle)                 #self._abort_cb(result)
         return    
 
 if __name__ == '__main__':
     rospy.init_node('nav_Server')
     server = NavigationServer()
     rospy.spin()
-

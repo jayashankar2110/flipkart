@@ -27,13 +27,29 @@ def callback(ctl_msg,robot):
     l=1 #lenght
     #x= (r/2)*(ctl_msg.vl+ctl_msg.vr)
     x=ctl_msg.v
-    y=ctl_msg.w
+    y=ctl_msg.w*0.1
     #y=(r/l)*(ctl_msg.vl-ctl_msg.vr)
-    x=0.1*0.33
+    x=0.05*0.33
+    #y=0.1*0.33
     msg_robot =robot_msg(x=x,y=y,isUnload=ctl_msg.ifUnload)
     if idle_state:
         msg_robot =robot_msg(x=0,y=0,isUnload=ctl_msg.ifUnload) 
         pass
+    l = x - (y*0.095)/2 
+    r = x  + (y*0.095)/2 
+  
+  
+
+    
+    l = max(min(l, 0.33), 0.0)
+    r = max(min(r, 0.33), 0.0)
+    lPwm = l*3000
+    rPwm = r*3000
+    print("-------->")
+    print(lPwm) 
+    print(rPwm)
+    print("<-----")
+    print("~~~~~~")
     print(x)
     print(y)
     #send message to bot

@@ -1,4 +1,4 @@
-duration: 12.0  # in seconds
+duration: 100.0  # in seconds
 ctrl_sampling: 0.01
 obstacle_map: [0,0]
 grid_size: 0.15

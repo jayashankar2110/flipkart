@@ -2,11 +2,11 @@ wheel_base: 0.095  # distance between wheels
 wheel_radius: 3 # in cm
 motor_max_speed: 100 # in RPM
 target_time: 10 # seconds
-i_state: [0.79, 0.90, 3.14,0.0]  # x,y,theta,velocity
+i_state: [0.7863247, 0.9230769, 3.2522,0.0]  # x,y,theta,velocity
 f_state: [0.15, 0.15, 1.57,0.0]
 #i_state: [0.152, 0.213, 0.0,0.0]  # x,y,theta,velocity
 #f_state: [1.31, 1.46, 2.0,0.0] 
-c_state: [0.79, 0.90, 3.14,0.0]
+c_state: [0.7863247, 0.9230769, 3.2522,0.0]
 robot_radius: 0.07
 start_navigation: True
 job_done: False
