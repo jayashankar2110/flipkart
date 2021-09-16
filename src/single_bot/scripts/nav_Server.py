@@ -301,10 +301,16 @@ class NavigationServer():
 
         
         delta = self.control(0,alpha,kp,ki,kd)
+        
+        target_pose = [tx,ty]
+        currest_pose = [state.x,state.y]
+
+        ai = self.proportional_control(target_pose,curr_pose )
+
         #pdb.set_trace()
         #yaw_pid.update(alpha,clock.time())
         #delta = yaw_pid.output 
-        return delta, ind
+        return delta,ai, ind
 
 
     def plot_arrow(self,x, y, yaw, length=0.01, width=0.05, fc="r", ec="k"):
@@ -440,8 +446,8 @@ class NavigationServer():
                 #rospy.loginfo(state.yaw)
             # Calc control input
             #rospy.logwarn("123")
-            ai = self.proportional_control(target_speed, state.v)
-            di, target_ind = self.pure_pursuit_steer_control(state, target_course, target_ind)
+            
+            di,ai,target_ind = self.pure_pursuit_steer_control(state, target_course, target_ind)
             #rospy.logwarn("456")
             #update way_point index in feedback msg
             self.action_feedback.target_wpt_indx = target_ind
