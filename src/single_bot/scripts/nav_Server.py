@@ -245,6 +245,9 @@ class NavigationServer():
     def control(self,SetPoint,feedback_value,Kp,Ki,Kd):
         windup_guard = 20.0
         error = SetPoint - feedback_value
+        if error < 0.05 and error > -0.05:
+            error = 0
+
         self.current_time = clock.time()
         delta_time = self.current_time - self.last_time
         delta_error = error - self.last_error
@@ -322,7 +325,6 @@ class NavigationServer():
 
         print(kv)
         delta = self.control(0,alpha,kp,ki,kd)
-        
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
 
