@@ -152,6 +152,9 @@ class NavigationServer():
     def __init__(self):
         self.v = 0
         self.w = 0
+        self.v_output
+        self.yaw_output
+        
         self.c_state = None
         self.bot_id = 0
         self.bot_L = None
@@ -211,7 +214,7 @@ class NavigationServer():
         result.tElapsed = self.action_feedback.tElapsed
         goal_handle.set_aborted(result)
     
-    def proportional_control(self,target, current,Kp):
+    def vel_control(self,target, current,Kp):
         windup_guard = 20.0
         error = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
         self.current_time = clock.time()
@@ -235,14 +238,15 @@ class NavigationServer():
             self.last_time = self.current_time
             self.last_error = error
 
-            output = PTerm
-            return output
+            self.v_output = PTerm
+            return self.v_output
+    
     def wrap2PI(self,angle):
         angle = (angle + np.pi) % (2 * np.pi) - np.pi
 
         return angle
     
-    def control(self,SetPoint,feedback_value,Kp,Ki,Kd):
+    def yaw_control(self,SetPoint,feedback_value,Kp,Ki,Kd):
         windup_guard = 20.0
         error = SetPoint - feedback_value
         if error < 0.05 and error > -0.05:
@@ -269,8 +273,8 @@ class NavigationServer():
             self.last_time = self.current_time
             self.last_error = error
 
-            output = PTerm + (Ki * ITerm) + (Kd * DTerm)
-            return output
+            self.yaw_output = PTerm + (Ki * ITerm) + (Kd * DTerm)
+            return self.yaw_output
     
     def send_ctrl(self, a, delta):
         # if delta >= math.pi/3:
@@ -324,11 +328,11 @@ class NavigationServer():
         kv= float(k['vel_p']) 
 
         print(kv)
-        delta = self.control(0,alpha,kp,ki,kd)
+        delta = self.yaw_control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
         #pdb.set_trace()
-        ai = self.proportional_control(target_pose,curr_pose,kv)
+        ai = self.vel_control(target_pose,curr_pose,kv)
 
         #pdb.set_trace()
         #yaw_pid.update(alpha,clock.time())
