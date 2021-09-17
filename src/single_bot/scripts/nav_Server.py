@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 
 Path tracking simulation with pure pursuit steering and PID speed control.
@@ -327,7 +327,7 @@ class NavigationServer():
         delta = self.control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
-
+        #pdb.set_trace()
         ai = self.proportional_control(target_pose,curr_pose,kv)
 
         #pdb.set_trace()
@@ -474,8 +474,8 @@ class NavigationServer():
             #rospy.logwarn("456")
             #update way_point index in feedback msg
             self.action_feedback.target_wpt_indx = target_ind
-            
-            state.update(ai, di)  #update inital states
+            if simulation:
+                state.update(ai, di)  #update inital states
             self.send_ctrl(ai,di) #send control input to commu node
             ##rospy.logwarn("send control")
 
