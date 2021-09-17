@@ -24,6 +24,7 @@ import actionlib
 import rospy
 from CubicSpline import cubic_spline_planner
 from pathPlanner import a_star
+from rospy.client import spin
 from rospy.core import loginfo
 
 from single_bot.msg import state1Action
@@ -230,102 +231,140 @@ class NavigationServer():
         result.tElapsed = self.action_feedback.tElapsed
         goal_handle.set_aborted(result)
     
-    def vel_control(self,target, current,Kp):
-        windup_guard = 20.0
-        error = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
-        self.current_time = clock.time()
-        delta_time = self.current_time - self.last_time
-        delta_error = error - self.last_error
+    # def vel_control(self,target, current,Kp):
+    #     windup_guard = 20.0
+    #     error = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
+    #     self.current_time = clock.time()
+    #     delta_time = self.current_time - self.last_time
+    #     delta_error = error - self.last_error
 
-        if (delta_time >= dt):
-            PTerm = Kp * error
-            # ITerm=0
-            # ITerm += error * delta_time
+    #     if (delta_time >= dt):
+    #         PTerm = Kp * error
+    #         # ITerm=0
+    #         # ITerm += error * delta_time
 
-            # if ( ITerm < windup_guard):
-            #     ITerm = -windup_guard
-            # elif (ITerm > windup_guard):
-            #     ITerm=windup_guard
-            # DTerm = 0.0
-            # if delta_time > 0:
-            #     DTerm = delta_error / delta_time
+    #         # if ( ITerm < windup_guard):
+    #         #     ITerm = -windup_guard
+    #         # elif (ITerm > windup_guard):
+    #         #     ITerm=windup_guard
+    #         # DTerm = 0.0
+    #         # if delta_time > 0:
+    #         #     DTerm = delta_error / delta_time
 
-            # Remember last time and last error for next calculation
-            self.last_time = self.current_time
-            self.last_error = error
+    #         # Remember last time and last error for next calculation
+    #         self.last_time = self.current_time
+    #         self.last_error = error
 
-            self.v_output = PTerm
-            return self.v_output
+    #         self.v_output = PTerm
+    #         return self.v_output
     
     def wrap2PI(self,angle):
         angle = (angle + np.pi) % (2 * np.pi) - np.pi
 
         return angle
     
-    def yaw_control(self,SetPoint,feedback_value,Kp,Ki,Kd):
-        windup_guard = 20.0
-        error = SetPoint - feedback_value
-        if error < 0.01 and error > -0.01:
-            error = 0
-        #rospy.loginfo(error)
-        self.current_time = clock.time()
-        delta_time = self.current_time - self.last_time
-        delta_error = error - self.last_error
+    # def yaw_control(self,SetPoint,feedback_value,Kp,Ki,Kd):
+    #     windup_guard = 20.0
+        
+    #     if error < 0.01 and error > -0.01:
+    #         error = 0
+    #     #rospy.loginfo(error)
+    #     self.current_time = clock.time()
+    #     delta_time = self.current_time - self.last_time
+    #     delta_error = error - self.last_error
 
-        if (delta_time >= dt):
-            PTerm = Kp * error
-            ITerm=0
-            ITerm += error * delta_time
+    #     if (delta_time >= dt):
+    #         PTerm = Kp * error
+    #         ITerm=0
+    #         ITerm += error * delta_time
 
-            if ( ITerm < windup_guard):
-                ITerm = -windup_guard
-            elif (ITerm > windup_guard):
-                ITerm=windup_guard
-            DTerm = 0.0
-            if delta_time > 0:
-                DTerm = delta_error / delta_time
+    #         if ( ITerm < windup_guard):
+    #             ITerm = -windup_guard
+    #         elif (ITerm > windup_guard):
+    #             ITerm=windup_guard
+    #         DTerm = 0.0
+    #         if delta_time > 0:
+    #             DTerm = delta_error / delta_time
 
-            # Remember last time and last error for next calculation
-            self.last_time = self.current_time
-            self.last_error = error
+    #         # Remember last time and last error for next calculation
+    #         self.last_time = self.current_time
+    #         self.last_error = error
 
-            self.yaw_output = PTerm + (Ki * ITerm) + (Kd * DTerm)
-            return self.yaw_output
+    #         self.yaw_output = PTerm + (Ki * ITerm) + (Kd * DTerm)
+    #         return self.yaw_output
     
     def send_ctrl(self, a, delta):
         # if delta >= math.pi/3:
         #     a =0
         self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
         self.v += a * dt
-        if self.control_mode = 'spin'
+        if self.control_mode == 'spin':
             self.v = 0
         # bot_vr = self.v + (self.bot_L*self.w)/2
         # bot_vl = self.v - (self.bot_L*self.w)/2
         self._com_pub.publish(v = self.v, w = self.w,ifUnload = False)
         #self._com_pub.publish(vr = bot_vr, vl = bot_vl,ifUnload = False)
     
-    def proportional_control(self,target, current):
+    def pose_control(self,target, current,SetPoint,feedback_value):
         if Tune:
             k = self.param_client.get_configuration(timeout=1) 
             kv= float(k['vel_p'])
-            v_pid.setKp(kv)
+            kp= float(k['yaw_p'])
+            ki= float(k['yaw_i'])
+            kd= float(k['yaw_d'])
+            yaw_pid.setKp(kp)
+            yaw_pid.setKi(ki)
+            yaw_pid.setKd(kd)
+            p_pid.setKp(kv)
+
             rospy.loginfo(kv)
-        error = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
-        v_pid.update(error,clock.time())
+        error_yaw = SetPoint - feedback_value
+        if error_yaw > (math.pi/4):
+            self.control_mode=spin
+        error_pos = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
+        p_pid.update(error_pos,clock.time())
+        yaw_pid.update(error_yaw,clock.time())
+        delta = yaw_pid.output
         a = v_pid.output
         rospy.loginfo(a)
     #a = Kp * (target - current)
-        return a
-    def pure_pursuit_steer_control(self, state, trajectory, pind):
+        return a,delta
+    def vel_control(self,target, current,SetPoint,feedback_value,kv):
+        if Tune:
+            k = self.param_client.get_configuration(timeout=1) 
+            kp= float(k['yaw_p'])
+            ki= float(k['yaw_i'])
+            kd= float(k['yaw_d'])
+            yaw_pid.setKp(kp)
+            yaw_pid.setKi(ki)
+            yaw_pid.setKd(kd)
+            v_pid.setKp(kv)
 
+            rospy.loginfo(kv)
+        error_yaw = SetPoint - feedback_value
+        if error_yaw > (math.pi/4):
+            self.control_mode=spin
+        error_vel = target-current
+        v_pid.update(error_vel,clock.time())
+        yaw_pid.update(error_yaw,clock.time())
+        delta = yaw_pid.output
+        a = v_pid.output
+        #rospy.loginfo(a)
+    #a = Kp * (target - current)
+        return a,delta
+
+    def pure_pursuit_steer_control(self, state, trajectory, pind):
+        scaling_factor = rospy.get_param('/mtrs2grid')
         #pdb.set_trace()
         ind, Lf = trajectory.search_target_index(state)
         g_state = rospy.get_param('/f_state')
         gx = int(g_state[0]*scaling_factor) 
         gy = int(g_state[1]*scaling_factor)
         distance_from_goal = state.calc_distance(gx,gy)
+        robot_radius = int(rospy.get_param('/robot_radius')*scaling_factor)
  #--------------------->>>>>>>>>>>>>>>>>>>>>>>>>       if distance_from_goal > 2*RR
-
+        if distance_from_goal>2*robot_radius:
+            self.control_mode="pose"
         if pind >= ind:
             ind = pind
 
@@ -351,7 +390,7 @@ class NavigationServer():
         #rospy.loginfo(alpha)
         if alpha > math.pi/3:
             alpha = math.pi/3
-        delta = self.yaw_control(0,alpha,kp,ki,kd)
+        #delta = self.yaw_control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
         
@@ -366,7 +405,14 @@ class NavigationServer():
         #print(kv)
         
         #pdb.set_trace()
-        delta,ai = self.proportional_control(target_pose,curr_pose)
+        wheelR = rospy.get_param('/wheel_radius')
+        motor_RPM = rospy.get_param('/motor_max_speed')
+        target_speed =  motor_RPM*0.10472*wheelR
+        kp=0.1
+        if self.control_mode=="pose":
+            delta,ai = self.pose_control(target_pose,curr_pose,0,alpha)
+        if self.control_mode=="track":
+            delta,ai = self.vel_control(target_speed,state.v,0,alpha,kp)
         ai=0
         #pdb.set_trace()
         #yaw_pid.update(alpha,clock.time())
