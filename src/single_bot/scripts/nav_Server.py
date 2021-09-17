@@ -152,8 +152,8 @@ class NavigationServer():
     def __init__(self):
         self.v = 0
         self.w = 0
-        self.v_output
-        self.yaw_output
+        self.v_output=0
+        self.yaw_output=0
         
         self.c_state = None
         self.bot_id = 0
@@ -251,7 +251,7 @@ class NavigationServer():
         error = SetPoint - feedback_value
         if error < 0.05 and error > -0.05:
             error = 0
-
+        rospy.loginfo(error)
         self.current_time = clock.time()
         delta_time = self.current_time - self.last_time
         delta_error = error - self.last_error
@@ -299,7 +299,7 @@ class NavigationServer():
             tx = trajectory.cx[-1]
             ty = trajectory.cy[-1]
             ind = len(trajectory.cx) - 1
-        print(tx,ty)
+        #print(tx,ty)
         
         # alpha = math.atan2(ty - state.y, tx - state.x) - state.yaw 
 
@@ -313,7 +313,7 @@ class NavigationServer():
         #ref_pos = np.dot(T,[[tx],[ty]]) - [[state.x],[state.y]]
         ref_pos = np.dot(T,[[tx-state.x],[ty-state.y]])
         alpha = math.atan2(ref_pos[1], ref_pos[0])
-        rospy.loginfo(alpha)
+        #rospy.loginfo(alpha)
         if alpha > math.pi/3:
             alpha = math.pi/3
         
@@ -332,8 +332,8 @@ class NavigationServer():
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
         #pdb.set_trace()
-        ai = self.vel_control(target_pose,curr_pose,kv)
-
+        #ai = self.vel_control(target_pose,curr_pose,kv)
+        ai=0
         #pdb.set_trace()
         #yaw_pid.update(alpha,clock.time())
         #delta = yaw_pid.output 

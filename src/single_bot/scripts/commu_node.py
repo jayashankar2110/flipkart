@@ -27,9 +27,9 @@ def callback(ctl_msg,robot):
     l=1 #lenght
     #x= (r/2)*(ctl_msg.vl+ctl_msg.vr)
     x=ctl_msg.v
-    y=ctl_msg.w*0.1
+    y=ctl_msg.w
     #y=(r/l)*(ctl_msg.vl-ctl_msg.vr)
-    x=0.05*0.33
+    x=0.0*0.33
     #y=0.1*0.33
     msg_robot =robot_msg(x=x,y=y,isUnload=ctl_msg.ifUnload)
     if idle_state:
