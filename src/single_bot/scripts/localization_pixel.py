@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 node name 'listner', feed_publishes bot state to '/feedback' topic in message format as

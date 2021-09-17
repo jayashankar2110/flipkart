@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 takes message in format 
@@ -41,8 +41,8 @@ def callback(ctl_msg,robot):
   
 
     
-    l = max(min(l, 0.33), 0.0)
-    r = max(min(r, 0.33), 0.0)
+    l = max(min(l, 0.33), -0.33)
+    r = max(min(r, 0.33), -0.33)
     lPwm = l*3000
     rPwm = r*3000
     print("-------->")
