@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 
 Path tracking simulation with pure pursuit steering and PID speed control.
@@ -12,6 +12,9 @@ goal msgs - inital and final positions for path planning and tracking float64[]
 result msgs - bool success, float64 tElapsed 
 feedback msgs - float64 tElapsed, float64 deviation, float64[] nextPose, string message
 
+
+  1. based on angle need shift controller to orientation alone
+  2. based on distance from target shift controller to position feedback controller.
 """
 import numpy as np
 import math
@@ -31,7 +34,6 @@ from single_bot.msg import localizemsg
 from single_bot.msg import com_msg
 import dynamic_reconfigure.client
 
-
 from PID import PID
 import time as clock
 import pdb
@@ -46,6 +48,7 @@ WB = rospy.get_param('/wheel_base')  # [m] wheel base of vehicle
 
 
 simulation = False
+Tune  = True
 
 if simulation:
     show_animation = True
@@ -59,6 +62,11 @@ yaw_pid.setSampleTime(dt)
 v_pid = PID.PID(1, 0, 0,clock.time())
 v_pid.SetPoint=0.0
 v_pid.setSampleTime(dt)
+
+p_pid = PID.PID(1, 0, 0,clock.time())
+p_pid.SetPoint=0.0
+p_pid.setSampleTime(dt)
+
 
 class State:
 
@@ -152,9 +160,13 @@ class NavigationServer():
     def __init__(self):
         self.v = 0
         self.w = 0
+        ##########3
         self.v_output=0
         self.yaw_output=0
+        #self.v_pid = PID.PID(1, 0, 0,clock.time())
         
+        ########3333
+        self.control_mode = 'track'   # spin,pose
         self.c_state = None
         self.bot_id = 0
         self.bot_L = None
@@ -174,6 +186,10 @@ class NavigationServer():
         #self._status_sub = rospy.Subscriber('/Monitor', Status, self._status_cb) # to use robot ids 
         self._as = actionlib.ActionServer('/Navigation',state1Action,goal_cb=self._goal_cb,cancel_cb = self._cancel_cb, auto_start=False)
         self.param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
+        #initialise controllers
+        #self.v_pid.SetPoint=0.0
+        #self.v_pid.setSampleTime(dt)
+
         self._as.start()
         rospy.loginfo("Navigation Server started")
     
@@ -249,9 +265,9 @@ class NavigationServer():
     def yaw_control(self,SetPoint,feedback_value,Kp,Ki,Kd):
         windup_guard = 20.0
         error = SetPoint - feedback_value
-        if error < 0.05 and error > -0.05:
+        if error < 0.01 and error > -0.01:
             error = 0
-        rospy.loginfo(error)
+        #rospy.loginfo(error)
         self.current_time = clock.time()
         delta_time = self.current_time - self.last_time
         delta_error = error - self.last_error
@@ -281,14 +297,35 @@ class NavigationServer():
         #     a =0
         self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
         self.v += a * dt
+        if self.control_mode = 'spin'
+            self.v = 0
         # bot_vr = self.v + (self.bot_L*self.w)/2
         # bot_vl = self.v - (self.bot_L*self.w)/2
         self._com_pub.publish(v = self.v, w = self.w,ifUnload = False)
         #self._com_pub.publish(vr = bot_vr, vl = bot_vl,ifUnload = False)
     
+    def proportional_control(self,target, current):
+        if Tune:
+            k = self.param_client.get_configuration(timeout=1) 
+            kv= float(k['vel_p'])
+            v_pid.setKp(kv)
+            rospy.loginfo(kv)
+        error = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
+        v_pid.update(error,clock.time())
+        a = v_pid.output
+        rospy.loginfo(a)
+    #a = Kp * (target - current)
+        return a
     def pure_pursuit_steer_control(self, state, trajectory, pind):
+
         #pdb.set_trace()
         ind, Lf = trajectory.search_target_index(state)
+        g_state = rospy.get_param('/f_state')
+        gx = int(g_state[0]*scaling_factor) 
+        gy = int(g_state[1]*scaling_factor)
+        distance_from_goal = state.calc_distance(gx,gy)
+ #--------------------->>>>>>>>>>>>>>>>>>>>>>>>>       if distance_from_goal > 2*RR
+
         if pind >= ind:
             ind = pind
 
@@ -305,34 +342,31 @@ class NavigationServer():
 
         # delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
         #pdb.set_trace()
-        theta = state.yaw
-        #theta_r = math.atan2(ty - state.y, tx - state.x)
-        T = [[math.cos(theta),math.sin(theta)],[-math.sin(theta),math.cos(theta)]]
         
-        #ref_pos = np.dot(T,[[tx],[ty]])
-        #ref_pos = np.dot(T,[[tx],[ty]]) - [[state.x],[state.y]]
+        ### feedback
+        theta = state.yaw
+        T = [[math.cos(theta),math.sin(theta)],[-math.sin(theta),math.cos(theta)]]
         ref_pos = np.dot(T,[[tx-state.x],[ty-state.y]])
         alpha = math.atan2(ref_pos[1], ref_pos[0])
         #rospy.loginfo(alpha)
         if alpha > math.pi/3:
             alpha = math.pi/3
-        
-        #k = self.param_client.get_configuration(timeout=1)
-        #yaw_pid.setKp = float(k['yaw_p']) 
-        #yaw_pid.setKi = float(k['yaw_i']) 
-        #yaw_pid.setKd= float(k['yaw_d']) 
-        k = self.param_client.get_configuration(timeout=1)
-        kp = float(k['yaw_p']) 
-        ki = float(k['yaw_i']) 
-        kd = float(k['yaw_d']) 
-        kv= float(k['vel_p']) 
-
-        print(kv)
         delta = self.yaw_control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
+        
+        # start control
+        #check if it is pose, or track
+        #if track
+        #delta,ai = self.proportional_control(target_pose,curr_pose)
+        #if pose
+        #delta,ai = self.proportional_control(target_pose,curr_pose)
+
+
+        #print(kv)
+        
         #pdb.set_trace()
-        #ai = self.vel_control(target_pose,curr_pose,kv)
+        delta,ai = self.proportional_control(target_pose,curr_pose)
         ai=0
         #pdb.set_trace()
         #yaw_pid.update(alpha,clock.time())

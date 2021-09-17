@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 from numpy.lib.function_base import append
 import rospy
 import matplotlib.pyplot as plt
