@@ -190,7 +190,7 @@ class NavigationServer():
         #initialise controllers
         #self.v_pid.SetPoint=0.0
         #self.v_pid.setSampleTime(dt)
-
+        self.debug = {'spin': None, 'alpha':None,'v': None, 'w':None,'control_mode':None}
         self._as.start()
         rospy.loginfo("Navigation Server started")
     
@@ -245,7 +245,7 @@ class NavigationServer():
         
         if self.spin :
             self.v = 0
-            self.w = 1
+            self.w = 0.5
         else:
             self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
             #self.v += a * dt
@@ -295,7 +295,7 @@ class NavigationServer():
         
         error_yaw = SetPoint - feedback_value
         rospy.logwarn(error_yaw)
-        if abs(error_yaw) > (math.pi/3):
+        if abs(error_yaw) > math.pi/3:
             self.spin=True
         else:
             self.spin=False
@@ -342,7 +342,7 @@ class NavigationServer():
         T = [[math.cos(theta),math.sin(theta)],[-math.sin(theta),math.cos(theta)]]
         ref_pos = np.dot(T,[[tx-state.x],[ty-state.y]])
         alpha = math.atan2(ref_pos[1], ref_pos[0])
-        rospy.loginfo(alpha)
+        self.debug['alpha'] = alpha
         alpha = max(min(alpha, math.pi/2), -math.pi/2)
         #delta = self.yaw_control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
@@ -366,8 +366,8 @@ class NavigationServer():
         kp=0.1
         delta=0
         ai=0
-        rospy.loginfo(self.control_mode)
-        rospy.loginfo(self.spin)
+        self.debug['control_mode'] = self.control_mode
+        self.debug['spin'] = spin
         if self.control_mode=="pose":
             delta,ai = self.pose_control(target_pose,curr_pose,0,alpha)
         if self.control_mode=="track":
@@ -584,6 +584,7 @@ class NavigationServer():
             self._success_cb(goal_handle)   
         # else:
         #rospy.loginfo("while end")
+        rospy.loginfo(self.debug)
     
     def _goal_cb(self,goal_handle):
         result = []
