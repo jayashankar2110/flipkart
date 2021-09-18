@@ -174,7 +174,7 @@ class NavigationServer():
         self._cancelRequest = False
         self._feed_time = float(rospy.get_time())
         self._goal_hold_time = 3.0 # in seconds
-        self._max_turning_angle = math.pi/3  # if change in angle is beyond this robot velocity will be not be updated
+        self._max_turning_angle = 0.087 # if change in angle is beyond this robot velocity will be not be updated
         self.action_feedback = state1Feedback()
         self.com_msg = com_msg() 
         self.current_time = clock.time()
@@ -245,7 +245,7 @@ class NavigationServer():
         
         if self.spin :
             self.v = 0
-            self.w = 0.5
+            self.w = 0.8
         else:
             self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
             #self.v += a * dt
@@ -258,7 +258,7 @@ class NavigationServer():
     def pose_control(self,target, current,SetPoint,feedback_value):
         if Tune:
             k = self.param_client.get_configuration(timeout=1) 
-            kv= float(k['vel_p'])
+            kv= -float(k['vel_p'])
             kp= float(k['yaw_p'])
             ki= float(k['yaw_i'])
             kd= float(k['yaw_d'])
@@ -269,10 +269,11 @@ class NavigationServer():
 
             #rospy.loginfo(kv)
         error_yaw = SetPoint - feedback_value
-        if error_yaw > (math.pi/4):
+        if error_yaw > (math.pi/2):
             self.spin=True
         else:
             self.spin=False
+        print(self.spin)
         error_pos = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
         p_pid.update(error_pos,clock.time())
         yaw_pid.update(error_yaw,clock.time())
@@ -287,6 +288,7 @@ class NavigationServer():
             kp= float(k['yaw_p'])
             ki= float(k['yaw_i'])
             kd= float(k['yaw_d'])
+            kv= -float(k['vel_p'])
             yaw_pid.setKp(kp)
             yaw_pid.setKi(ki)
             yaw_pid.setKd(kd)
@@ -294,12 +296,16 @@ class NavigationServer():
 
         
         error_yaw = SetPoint - feedback_value
-        rospy.logwarn(error_yaw)
+        error_yaw = max(min(error_yaw, self._max_turning_angle ), -self._max_turning_angle )
+        
         if abs(error_yaw) > math.pi/3:
-            self.spin=True
+            #self.spin=True
+            pass
         else:
             self.spin=False
+        print(self.spin)
         error_vel = target-current
+        rospy.logwarn(error_vel)
         v_pid.update(error_vel,clock.time())
         yaw_pid.update(error_yaw,clock.time())
         delta = yaw_pid.output
@@ -343,7 +349,7 @@ class NavigationServer():
         ref_pos = np.dot(T,[[tx-state.x],[ty-state.y]])
         alpha = math.atan2(ref_pos[1], ref_pos[0])
         self.debug['alpha'] = alpha
-        alpha = max(min(alpha, math.pi/2), -math.pi/2)
+        alpha = max(min(alpha, math.pi/1.5), -math.pi/1.5)
         #delta = self.yaw_control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
@@ -362,7 +368,7 @@ class NavigationServer():
         #pdb.set_trace()
         wheelR = rospy.get_param('/wheel_radius')
         motor_RPM = rospy.get_param('/motor_max_speed')
-        target_speed =  motor_RPM*0.10472*wheelR
+        target_speed =  0.66#motor_RPM*0.10472*wheelR
         kp=0.1
         delta=0
         ai=0
@@ -450,8 +456,8 @@ class NavigationServer():
         scaling_factor = rospy.get_param('/mtrs2grid')
         #ay=np.array([7,7,7,7,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2])
         #ax=np.array([10,10,10,10,10,10,10,10,10,5,5,5,5,5,1,1,1,1,1])
-        ax=np.array([10,10,10,10,10,5,1])
-        ay=np.array([8,7,5,3.5,2,2,2]) 
+        ax=np.array([10,10,10,5,1])
+        ay=np.array([5,3.5,2,2,2]) 
         cx=(ax-1)*0.15
         cy=(ay-1)*0.15
         #rospy.loginfo(str(ax))
@@ -497,7 +503,7 @@ class NavigationServer():
             while self.bot_id ==str(0)and not self._cancelRequest:
                 rospy.logwarn('No bot detected, navigation halted..')
                 rospy.sleep(1.0)
-            
+            #pdb.set_trace()
             #check if client requested to cancel goal
             if self._cancelRequest:
                 self._cancelRequest = False

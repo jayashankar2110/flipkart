@@ -36,7 +36,7 @@ def talker():
     while not rospy.is_shutdown():
         pulse  =  True
         l = rosnode.get_node_names()
-        if '/localzation' in l:
+        if '/localzation' in l and '/nav_Client' in l and '/nav_Server' in l :
             pass
         else:
             _param_client.update_configuration({"start_navigation":False})

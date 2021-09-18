@@ -59,8 +59,8 @@ class state1Client:
         #    self.abortGoal()
 
     def cancelGoal(self):
-        rospy.sleep(2)
-        self._ac.cancel_goal()
+        self._ac.cancel_all_goals()
+        #self._ac.cancel_goal()
         rospy.logwarn('Goal canceled')
 
 def callback(msg,client):
@@ -74,7 +74,10 @@ def callback(msg,client):
         action_msg.targetPose = g_state
         action_msg.currentPose = i_state
         action_msg.tFinal = T
+        client.goal_sent = True
+
         client.send_nav_goal(action_msg)
+
     
     if msg.data == 'Idle' and client.goal_sent == True:
         client.cancelGoal()
