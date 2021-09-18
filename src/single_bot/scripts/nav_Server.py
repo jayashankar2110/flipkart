@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 
 Path tracking simulation with pure pursuit steering and PID speed control.
@@ -161,7 +161,8 @@ class NavigationServer():
     def __init__(self):
         self.v = 0
         self.w = 0
-        self.control_mode = 'track'   # spin,pose
+        self.control_mode = 'track'
+        self.spin=False   # spin,pose
         self.c_state = None
         self.bot_id = 0
         self.bot_L = None
@@ -238,7 +239,7 @@ class NavigationServer():
         #     a =0
         self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
         self.v += a * dt
-        if self.control_mode == 'spin':
+        if self.spin :
             self.v = 0
         # bot_vr = self.v + (self.bot_L*self.w)/2
         # bot_vl = self.v - (self.bot_L*self.w)/2
@@ -257,16 +258,18 @@ class NavigationServer():
             yaw_pid.setKd(kd)
             p_pid.setKp(kv)
 
-            rospy.loginfo(kv)
+            #rospy.loginfo(kv)
         error_yaw = SetPoint - feedback_value
         if error_yaw > (math.pi/4):
-            self.control_mode=spin
+            self.spin=True
+        else:
+            self.spin=False
         error_pos = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
         p_pid.update(error_pos,clock.time())
         yaw_pid.update(error_yaw,clock.time())
         delta = yaw_pid.output
         a = v_pid.output
-        rospy.loginfo(a)
+        #rospy.loginfo(a)
     #a = Kp * (target - current)
         return a,delta
     def vel_control(self,target, current,SetPoint,feedback_value,kv):
@@ -280,18 +283,20 @@ class NavigationServer():
             yaw_pid.setKd(kd)
             v_pid.setKp(kv)
 
-            rospy.loginfo(kv)
+            #rospy.loginfo(kv)
         error_yaw = SetPoint - feedback_value
-        if error_yaw > (math.pi/4):
-            self.control_mode=spin
+        if abs(error_yaw) > (math.pi/3):
+            self.spin=True
+        else:
+            self.spin=False
         error_vel = target-current
         v_pid.update(error_vel,clock.time())
         yaw_pid.update(error_yaw,clock.time())
         delta = yaw_pid.output
         a = v_pid.output
-        #rospy.loginfo(a)
+       # rospy.loginfo(a)
     #a = Kp * (target - current)
-        return a,delta
+        return delta,a
 
     def pure_pursuit_steer_control(self, state, trajectory, pind):
         scaling_factor = rospy.get_param('/mtrs2grid')
@@ -327,12 +332,12 @@ class NavigationServer():
         T = [[math.cos(theta),math.sin(theta)],[-math.sin(theta),math.cos(theta)]]
         ref_pos = np.dot(T,[[tx-state.x],[ty-state.y]])
         alpha = math.atan2(ref_pos[1], ref_pos[0])
-        #rospy.loginfo(alpha)
-        if alpha > math.pi/3:
-            alpha = math.pi/3
+        rospy.loginfo(alpha)
+        alpha = max(min(alpha, math.pi/3), -math.pi/3)
         #delta = self.yaw_control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
+        
         
         # start control
         #check if it is pose, or track
@@ -349,11 +354,19 @@ class NavigationServer():
         motor_RPM = rospy.get_param('/motor_max_speed')
         target_speed =  motor_RPM*0.10472*wheelR
         kp=0.1
+        delta=0
+        ai=0
+        rospy.loginfo(self.control_mode)
+        rospy.loginfo(self.spin)
         if self.control_mode=="pose":
             delta,ai = self.pose_control(target_pose,curr_pose,0,alpha)
         if self.control_mode=="track":
+            #pdb.set_trace()
             delta,ai = self.vel_control(target_speed,state.v,0,alpha,kp)
-        ai=0
+            print(delta,ai)
+            
+        
+        
         #pdb.set_trace()
         #yaw_pid.update(alpha,clock.time())
         #delta = yaw_pid.output 
@@ -427,8 +440,8 @@ class NavigationServer():
         scaling_factor = rospy.get_param('/mtrs2grid')
         #ay=np.array([7,7,7,7,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2])
         #ax=np.array([10,10,10,10,10,10,10,10,10,5,5,5,5,5,1,1,1,1,1])
-        ax=np.array([10,10,5,1])
-        ay=np.array([7,2,2,2])
+        ax=np.array([10,10,10,10,5,1])
+        ay=np.array([7,5,3.5,2,2,2]) 
         cx=(ax-1)*0.15
         cy=(ay-1)*0.15
         #rospy.loginfo(str(ax))
@@ -560,7 +573,7 @@ class NavigationServer():
         if  self.action_feedback.final_wpt_indx <= self.action_feedback.target_wpt_indx:
             self._success_cb(goal_handle)   
         # else:
-        rospy.loginfo("while end")
+        #rospy.loginfo("while end")
     
     def _goal_cb(self,goal_handle):
         result = []

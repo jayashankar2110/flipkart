@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 CentraolMonitor continuously publish pulse message on heart beat topic so that state-monitor

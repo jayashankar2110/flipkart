@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 '''
 Node changes startNavigation param to idicate idle status.
 use goal_sent Flag to avoid repeated cancel order.
