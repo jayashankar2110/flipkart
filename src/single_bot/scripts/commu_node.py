@@ -28,19 +28,13 @@ def callback(ctl_msg,robot):
     #x= (r/2)*(ctl_msg.vl+ctl_msg.vr)
     x=ctl_msg.v
     y=ctl_msg.w
-    #y=(r/l)*(ctl_msg.vl-ctl_msg.vr)
-    x=0.2*0.33
-    #y=1
     msg_robot =robot_msg(x=x,y=y,isUnload=ctl_msg.ifUnload)
     if idle_state:
         msg_robot =robot_msg(x=0,y=0,isUnload=ctl_msg.ifUnload) 
         pass
     l = x - (y*0.095)/2 
     r = x  + (y*0.095)/2 
-  
-  
-
-    
+     
     l = max(min(l, 0.33), -0.33)
     r = max(min(r, 0.33), -0.33)
     lPwm = l*3000
