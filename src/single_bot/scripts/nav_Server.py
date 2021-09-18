@@ -40,8 +40,8 @@ import time as clock
 import pdb
 
 # Parameters
-k = 0.1  # look forward gain
-Lfc = 1.0*rospy.get_param('/robot_radius')  # [m] look-ahead distance
+k = 0  # look forward gain adds factor of velocity to Lfc
+Lfc = 2.0*rospy.get_param('/robot_radius')  # [m] look-ahead distance
 Kp = 0.5  # speed proportional gain
 global dt
 dt = rospy.get_param('/ctrl_sampling')  # [s] time tick
@@ -137,7 +137,7 @@ class TargetCourse:
             while True:
                 ##rospy.logwarn("searching...")
                 distance_next_index = state.calc_distance(self.cx[ind + 1],
-                                                          self.cy[ind + 1])
+                                                       self.cy[ind + 1])
                 if distance_this_index < distance_next_index:
                     break
                 ind = ind + 1 if (ind + 1) < len(self.cx) else ind
@@ -161,12 +161,6 @@ class NavigationServer():
     def __init__(self):
         self.v = 0
         self.w = 0
-        ##########3
-        self.v_output=0
-        self.yaw_output=0
-        #self.v_pid = PID.PID(1, 0, 0,clock.time())
-        
-        ########3333
         self.control_mode = 'track'   # spin,pose
         self.c_state = None
         self.bot_id = 0
@@ -231,68 +225,14 @@ class NavigationServer():
         result.tElapsed = self.action_feedback.tElapsed
         goal_handle.set_aborted(result)
     
-    # def vel_control(self,target, current,Kp):
-    #     windup_guard = 20.0
-    #     error = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
-    #     self.current_time = clock.time()
-    #     delta_time = self.current_time - self.last_time
-    #     delta_error = error - self.last_error
 
-    #     if (delta_time >= dt):
-    #         PTerm = Kp * error
-    #         # ITerm=0
-    #         # ITerm += error * delta_time
-
-    #         # if ( ITerm < windup_guard):
-    #         #     ITerm = -windup_guard
-    #         # elif (ITerm > windup_guard):
-    #         #     ITerm=windup_guard
-    #         # DTerm = 0.0
-    #         # if delta_time > 0:
-    #         #     DTerm = delta_error / delta_time
-
-    #         # Remember last time and last error for next calculation
-    #         self.last_time = self.current_time
-    #         self.last_error = error
-
-    #         self.v_output = PTerm
-    #         return self.v_output
     
     def wrap2PI(self,angle):
         angle = (angle + np.pi) % (2 * np.pi) - np.pi
 
         return angle
     
-    # def yaw_control(self,SetPoint,feedback_value,Kp,Ki,Kd):
-    #     windup_guard = 20.0
-        
-    #     if error < 0.01 and error > -0.01:
-    #         error = 0
-    #     #rospy.loginfo(error)
-    #     self.current_time = clock.time()
-    #     delta_time = self.current_time - self.last_time
-    #     delta_error = error - self.last_error
-
-    #     if (delta_time >= dt):
-    #         PTerm = Kp * error
-    #         ITerm=0
-    #         ITerm += error * delta_time
-
-    #         if ( ITerm < windup_guard):
-    #             ITerm = -windup_guard
-    #         elif (ITerm > windup_guard):
-    #             ITerm=windup_guard
-    #         DTerm = 0.0
-    #         if delta_time > 0:
-    #             DTerm = delta_error / delta_time
-
-    #         # Remember last time and last error for next calculation
-    #         self.last_time = self.current_time
-    #         self.last_error = error
-
-    #         self.yaw_output = PTerm + (Ki * ITerm) + (Kd * DTerm)
-    #         return self.yaw_output
-    
+  
     def send_ctrl(self, a, delta):
         # if delta >= math.pi/3:
         #     a =0
@@ -361,9 +301,9 @@ class NavigationServer():
         gx = int(g_state[0]*scaling_factor) 
         gy = int(g_state[1]*scaling_factor)
         distance_from_goal = state.calc_distance(gx,gy)
-        robot_radius = int(rospy.get_param('/robot_radius')*scaling_factor)
+        #robot_radius = int(rospy.get_param('/robot_radius')*scaling_factor)
  #--------------------->>>>>>>>>>>>>>>>>>>>>>>>>       if distance_from_goal > 2*RR
-        if distance_from_goal>2*robot_radius:
+        if distance_from_goal>Lfc:
             self.control_mode="pose"
         if pind >= ind:
             ind = pind
