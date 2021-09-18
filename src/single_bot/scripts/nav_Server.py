@@ -40,7 +40,7 @@ import time as clock
 import pdb
 
 # Parameters
-k = 0  # look forward gain adds factor of velocity to Lfc
+k = 1  # look forward gain adds factor of velocity to Lfc
 Lfc = 2.0*rospy.get_param('/robot_radius')  # [m] look-ahead distance
 Kp = 0.5  # speed proportional gain
 global dt
