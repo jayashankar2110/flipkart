@@ -242,10 +242,14 @@ class NavigationServer():
     def send_ctrl(self, a, delta):
         # if delta >= math.pi/3:
         #     a =0
-        self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
-        self.v += a * dt
+        
         if self.spin :
             self.v = 0
+            self.w = 1
+        else:
+            self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
+            #self.v += a * dt
+            self.v = 0.2*0.33
         # bot_vr = self.v + (self.bot_L*self.w)/2
         # bot_vl = self.v - (self.bot_L*self.w)/2
         self._com_pub.publish(v = self.v, w = self.w,ifUnload = False)
@@ -288,8 +292,9 @@ class NavigationServer():
             yaw_pid.setKd(kd)
             v_pid.setKp(kv)
 
-            #rospy.loginfo(kv)
+        
         error_yaw = SetPoint - feedback_value
+        rospy.logwarn(error_yaw)
         if abs(error_yaw) > (math.pi/3):
             self.spin=True
         else:
@@ -368,7 +373,7 @@ class NavigationServer():
         if self.control_mode=="track":
             #pdb.set_trace()
             delta,ai = self.vel_control(target_speed,state.v,0,alpha,kp)
-            print(delta,ai)
+            #print(delta,ai)
             
         
         
