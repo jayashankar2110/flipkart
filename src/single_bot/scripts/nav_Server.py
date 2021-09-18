@@ -343,7 +343,7 @@ class NavigationServer():
         ref_pos = np.dot(T,[[tx-state.x],[ty-state.y]])
         alpha = math.atan2(ref_pos[1], ref_pos[0])
         rospy.loginfo(alpha)
-        alpha = max(min(alpha, math.pi/3), -math.pi/3)
+        alpha = max(min(alpha, math.pi/2), -math.pi/2)
         #delta = self.yaw_control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
