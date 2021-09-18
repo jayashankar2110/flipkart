@@ -80,14 +80,17 @@ class State:
         # self.rear_y = self.y - ((WB / 2) * math.sin(self.yaw))
 
     def update(self, a, delta):
+
         self.x += self.v * math.cos(self.yaw) * dt
         self.y += self.v * math.sin(self.yaw) * dt
         self.yaw += self.v / WB * math.tan(delta) * dt
         self.v += a * dt
         # self.x = self.rear_x #- ((WB / 2) * math.cos(self.yaw))
         # self.y = self.rear_y #- ((WB / 2) * math.sin(self.yaw))
+        pass
 
     def calc_distance(self, point_x, point_y):
+        #pdb.set_trace()
         dx = self.x - point_x
         dy = self.y - point_y
         return math.hypot(dx, dy)
@@ -147,7 +150,9 @@ class TargetCourse:
         Lf = k * state.v + Lfc  # update look ahead distance
 
         # search look ahead target point index
+        #pdb.set_trace()
         while Lf > state.calc_distance(self.cx[ind], self.cy[ind]):
+            
             ##rospy.logwarn("look ahead")
             if (ind + 1) >= len(self.cx):
                 break  # not exceed goal
@@ -303,13 +308,13 @@ class NavigationServer():
         #pdb.set_trace()
         ind, Lf = trajectory.search_target_index(state)
         g_state = rospy.get_param('/f_state')
-        gx = int(g_state[0]*scaling_factor) 
-        gy = int(g_state[1]*scaling_factor)
+        gx = int(g_state[0]) 
+        gy = int(g_state[1])
         distance_from_goal = state.calc_distance(gx,gy)
         #robot_radius = int(rospy.get_param('/robot_radius')*scaling_factor)
  #--------------------->>>>>>>>>>>>>>>>>>>>>>>>>       if distance_from_goal > 2*RR
-        if distance_from_goal>Lfc:
-            self.control_mode="pose"
+        if distance_from_goal<Lfc:
+            self.control_mode="qwerty"
         if pind >= ind:
             ind = pind
 
@@ -440,8 +445,8 @@ class NavigationServer():
         scaling_factor = rospy.get_param('/mtrs2grid')
         #ay=np.array([7,7,7,7,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2])
         #ax=np.array([10,10,10,10,10,10,10,10,10,5,5,5,5,5,1,1,1,1,1])
-        ax=np.array([10,10,10,10,5,1])
-        ay=np.array([7,5,3.5,2,2,2]) 
+        ax=np.array([10,10,10,10,10,5,1])
+        ay=np.array([8,7,5,3.5,2,2,2]) 
         cx=(ax-1)*0.15
         cy=(ay-1)*0.15
         #rospy.loginfo(str(ax))
@@ -481,7 +486,7 @@ class NavigationServer():
         preempted = False
         abort = False
         #while T >= time and lastIndex > target_ind and not rospy.is_shutdown():
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() and lastIndex > target_ind:
 
             # check if bot is under camera
             while self.bot_id ==str(0)and not self._cancelRequest:

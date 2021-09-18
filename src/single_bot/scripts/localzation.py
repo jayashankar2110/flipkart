@@ -14,6 +14,8 @@ msg=localizemsg()
 pub=None
 x_ar=[]
 y_ar=[]
+mtrs2pixelx=rospy.get_param('/mtrs2pixelx')
+mtrs2pixely=rospy.get_param('/mtrs2pixely')
 def find_angle(a,b,center_a,center_b):
     print(a,b)
     print(center_a,center_b)
@@ -33,6 +35,7 @@ def localize(data,image_pub):
    
     bridge = CvBridge()
     image = bridge.imgmsg_to_cv2(data, "8UC3")
+   
     
 
 	# load the ArUCo dictionary, grab the ArUCo parameters, and detect
@@ -66,9 +69,9 @@ def localize(data,image_pub):
         angle=find_angle(head_x,head_y,center_x,center_y)
 
         msg.angle=angle
-        x_cordinate=center_x/200 #calibrate to return in metters
+        x_cordinate=center_x/mtrs2pixelx#calibrate to return in metters
         
-        y_cordinate=center_y/225#calibrate to return in metters
+        y_cordinate=center_y/mtrs2pixely #calibrate to return in metters
         msg.x_cordinate=x_cordinate
         msg.y_cordinate=y_cordinate
         

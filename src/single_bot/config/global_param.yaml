@@ -4,4 +4,9 @@ obstacle_map: [0,0]
 grid_size: 0.15
 mtrs2grid: 32.81   # foot scale down to 10 times and then converted to meters
 n_bots: 1
+mtrs2pixelx: 508
+mtrs2pixely: 545
+arena: [3.048,1.524] #arena in mtrs
+
+
 

@@ -53,7 +53,9 @@ while not rospy.is_shutdown():
    
     rows=im.shape[0]
     cols=im.shape[1]
-    
+    #arena=rospy.get_param("/arena")
+    #print(cols/arena[0]) #mtrs 2 pixel
+    #rospy.set_param('/mtrs2pixel',cols/arena[0])
     M = cv2.getRotationMatrix2D(((cols-1)/2.0,(rows-1)/2.0),180,1)
     dst = cv2.warpAffine(im,M,(cols,rows))
     ros_img=bridge.cv2_to_imgmsg(dst, "passthrough")
