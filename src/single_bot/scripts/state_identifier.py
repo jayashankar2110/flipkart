@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 This node works at rate of heart beat and starts pushing robot states as per parameter values

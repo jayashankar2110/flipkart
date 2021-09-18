@@ -2,10 +2,10 @@
     <rosparam command="load" file="$(find single_bot)/config/bot_param.yaml" />
     <rosparam command="load" file="$(find single_bot)/config/global_param.yaml" />
     <node pkg="single_bot" name="dyn_param_server" type="dyn_param_server.py"/>
-    <node name = "my_rqt_dashboard" pkg = "rqt_gui" type = "rqt_gui" respawn = "false" output = "screen"/>
-    <!-- <node name = "my_rqt_dashboard" pkg = "rqt_reconfigure" type = "rqt_reconfigure" respawn = "false" output = "screen"/> -->
+    <!-- <node name = "my_rqt_dashboard" pkg = "rqt_gui" type = "rqt_gui" respawn = "false" output = "screen"/> -->
+    <node name = "my_rqt_dashboard" pkg = "rqt_reconfigure" type = "rqt_reconfigure" respawn = "false" output = "screen"/> 
 
-    <!-- <node pkg="rosserial_server" type="socket_node" name="rosserial_server" />  -->
+    <node pkg="rosserial_server" type="socket_node" name="rosserial_server" /> 
     <node pkg="single_bot" name="CentralMonitor" type="CentralMonitor.py"/>
 
     
@@ -17,9 +17,9 @@
     <!-- <node pkg="single_bot" name="commu_node" type="commu_node.py"/> -->
     <node pkg="single_bot" name="unload_node" type="unload_node.py"/> 
 
-    <!-- <node pkg="single_bot" name="image" type="camera_listner.py"/> -->
-    <!-- <node pkg="single_bot" name="localzation" type="localzation.py"/> -->
-    <node pkg="single_bot" name="localzation" type="dummy_feed.py"/>
+    <node pkg="single_bot" name="image" type="camera_listner.py"/> 
+    <node pkg="single_bot" name="localzation" type="localzation.py"/> 
+    <!-- <node pkg="single_bot" name="localzation" type="dummy_feed.py"/> -->
     
     
 </launch>

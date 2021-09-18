@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 
 # Python libs
@@ -35,15 +35,14 @@ while not rospy.is_shutdown():
     #pts2 = np.float32([[0, 0], [1496,0], [0,780], [1496, 780]])
     #pts1 = np.float32([[127, 201], [1560,94], [175,950 ], [1570, 910]])
     #pts2 = np.float32([[0, 0], [1496,0], [0,780], [1496, 780]])
-    pts1 = np.float32([[0, 230], [1600,120], [70,1045], [1620, 920]])
+    #pts1 = np.float32([[0, 230], [1600,120], [70,1045], [1620, 920]])
+    pts1 = np.float32([[10, 94], [600,100], [10,395], [600, 395]])
     pts2 = np.float32([[0, 0], [1496,0], [0,780], [1496, 780]])
-      
-      
     # Apply Perspective Transform Algorithm
     matrix = cv2.getPerspectiveTransform(pts1, pts2)
     im = cv2.warpPerspective(im, matrix, (1550, 830))
     #res1 = cv.warpPerspective(frame, matrix, (600, 280))
-    scale_percent = 40 # percent of original size
+    scale_percent = 100 # percent of original size
     width = int(im.shape[1] * scale_percent / 100)
     height = int(im.shape[0] * scale_percent / 100)
     
@@ -58,6 +57,7 @@ while not rospy.is_shutdown():
     M = cv2.getRotationMatrix2D(((cols-1)/2.0,(rows-1)/2.0),180,1)
     dst = cv2.warpAffine(im,M,(cols,rows))
     ros_img=bridge.cv2_to_imgmsg(dst, "passthrough")
+    
     image_pub.publish(ros_img)
     
   
