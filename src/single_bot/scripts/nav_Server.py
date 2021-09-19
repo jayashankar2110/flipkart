@@ -25,7 +25,11 @@ import rospy
 from CubicSpline import cubic_spline_planner
 from pathPlanner import a_star
 from rospy.client import spin
-global dt
+from rospy.core import loginfo
+
+from single_bot.msg import state1Action
+from single_bot.msg import state1Goal
+from single_bot.msg import state1Result
 from single_bot.msg import state1Feedback
 from single_bot.msg import localizemsg
 from single_bot.msg import com_msg
@@ -36,7 +40,7 @@ import time as clock
 import pdb
 
 # Parameters
-k = 1  # look forward gain adds factor of velocity to Lfc
+k = 0  # look forward gain adds factor of velocity to Lfc
 Lfc = 2.0*rospy.get_param('/robot_radius')  # [m] look-ahead distance
 Kp = 0.5  # speed proportional gain
 global dt
@@ -240,14 +244,12 @@ class NavigationServer():
         #     a =0
         
         if self.spin :
-            self.v = 0
-            self.w = 0.8
+            self.v = 0.1
+            self.w = 0.5
         else:
             self.w = self.wrap2PI(delta)   #self.v / WB * math.tan(delta) * dt
             #self.v += a * dt
             self.v = 0.2*0.33
-        # bot_vr = self.v + (self.bot_L*self.w)/2
-        # bot_vl = self.v - (self.bot_L*self.w)/2
         self._com_pub.publish(v = self.v, w = self.w,ifUnload = False)
         #self._com_pub.publish(vr = bot_vr, vl = bot_vl,ifUnload = False)
     
@@ -256,11 +258,10 @@ class NavigationServer():
             k = self.param_client.get_configuration(timeout=1) 
             kv= -float(k['vel_p'])
             kp= float(k['yaw_p'])
-            ki= float(k['yaw_i'])
-            kd= float(k['yaw_d'])
+            #ki= float(k['yaw_i'])
+            kr= float(k['yaw_rp'])   #will be passed to double_update
             yaw_pid.setKp(kp)
-            yaw_pid.setKi(ki)
-            yaw_pid.setKd(kd)
+
             p_pid.setKp(kv)
 
             #rospy.loginfo(kv)
@@ -272,7 +273,7 @@ class NavigationServer():
         print(self.spin)
         error_pos = math.sqrt( ((target[0]-current[0])**2)+((target[1]-current[1])**2) )
         p_pid.update(error_pos,clock.time())
-        yaw_pid.update(error_yaw,clock.time())
+        yaw_pid.double_update(error_yaw,kr,clock.time())
         delta = yaw_pid.output
         a = v_pid.output
         #rospy.loginfo(a)
@@ -282,8 +283,8 @@ class NavigationServer():
         if Tune:
             k = self.param_client.get_configuration(timeout=1) 
             kp= float(k['yaw_p'])
-            ki= float(k['yaw_i'])
-            kd= float(k['yaw_d'])
+            #ki= float(k['yaw_i'])
+            kr= float(k['yaw_rp'])  #will be passed to double_update
             kv= -float(k['vel_p'])
             yaw_pid.setKp(kp)
             yaw_pid.setKi(ki)
@@ -295,15 +296,14 @@ class NavigationServer():
         error_yaw = max(min(error_yaw, self._max_turning_angle ), -self._max_turning_angle )
         
         if abs(error_yaw) > math.pi/3:
-            #self.spin=True
-            pass
+            self.spin=True
         else:
             self.spin=False
         print(self.spin)
         error_vel = target-current
         rospy.logwarn(error_vel)
         v_pid.update(error_vel,clock.time())
-        yaw_pid.update(error_yaw,clock.time())
+        yaw_pid.double_update(error_yaw,kr,clock.time())
         delta = yaw_pid.output
         a = v_pid.output
        # rospy.loginfo(a)
@@ -318,10 +318,8 @@ class NavigationServer():
         gx = int(g_state[0]) 
         gy = int(g_state[1])
         distance_from_goal = state.calc_distance(gx,gy)
-        #robot_radius = int(rospy.get_param('/robot_radius')*scaling_factor)
- #--------------------->>>>>>>>>>>>>>>>>>>>>>>>>       if distance_from_goal > 2*RR
         if distance_from_goal<Lfc:
-            self.control_mode="qwerty"
+            self.control_mode="spin"
         if pind >= ind:
             ind = pind
 

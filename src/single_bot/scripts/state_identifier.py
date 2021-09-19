@@ -28,15 +28,19 @@ def publish_state_id(pulse,args):
     #start_navigation = rospy.get_param('/start_navigation')
 
     if start_navigation and pulse:
-        if c_state!= f_state and not job_done:
+        if c_state=='i' and not job_done:
             rospy.loginfo('sending bot to unload')
             state_id = 'navigate'
-        if c_state == f_state and not job_done:
+        if c_state =='f' and not job_done:
             rospy.loginfo('unloading')
             state_id = 'unload'
-        if c_state != f_state and job_done:
+        if c_state == 'f' and job_done:
             rospy.loginfo('Retuning to start position')
             state_id = 'navigate'
+        if c_state == 'i' and job_done:
+            rospy.loginfo('job completed')
+            state_id = 'Idle'
+
     else:
         state_id = 'Idle'
         #rospy.loginfo('Entered Idle  State')

@@ -37,7 +37,7 @@ class state1Client:
             rospy.sleep(0.5)
             self.goal_sent = False
             if status == 3:#success
-                rospy.loginfo('bot reached goal.. changing status to unload')
+                rospy.loginfo('bot reached goal..')
                 f_state = rospy.get_param('/f_state')
                 rospy.set_param('/c_state', f_state)    # switch to unloding state
             if status ==4:#aborted
