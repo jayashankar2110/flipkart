@@ -162,7 +162,7 @@ class TargetCourse:
 
 
 
-class NavigationServer():
+class NavigationServer(com_pub):
     def __init__(self):
         self.v = 0
         self.w = 0
@@ -183,7 +183,8 @@ class NavigationServer():
 
         #self._active_behavior_id = None
         self._feed_sub = rospy.Subscriber('/feedback',localizemsg,self._feed_cb)
-        self._com_pub = rospy.Publisher('/commu', com_msg,queue_size=1)
+        self._com_pub=com_pub
+        #self._com_pub = rospy.Publisher('/commu', com_msg,queue_size=1)
         #self._status_sub = rospy.Subscriber('/Monitor', Status, self._status_cb) # to use robot ids 
         self._as = actionlib.ActionServer('/Navigation',state1Action,goal_cb=self._goal_cb,cancel_cb = self._cancel_cb, auto_start=False)
         self.param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
@@ -601,5 +602,6 @@ class NavigationServer():
 
 if __name__ == '__main__':
     rospy.init_node('nav_Server')
-    server = NavigationServer()
+    pub = rospy.Publisher('/commu', com_msg,queue_size=1)
+    server = NavigationServer(pub)
     rospy.spin()

@@ -1,6 +1,6 @@
 #goal
-float64[] targetPose
-float64[] currentPose
+string targetPose
+string currentPose
 float64 tFinal
 ---
 #result

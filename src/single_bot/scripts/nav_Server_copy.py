@@ -38,6 +38,7 @@ import time as clock
 
 import pdb
 
+
 # Parameters
 k = 0.1  # look forward gain
 Lfc = 2.0*rospy.get_param('robot_radius')  # [m] look-ahead distance
@@ -161,12 +162,15 @@ class NavigationServer():
         #bot control params
         self.v = 0
         self.w = 0
-        self.traget_vel = 0.5*0.33
+        self.stopTol=0.05 #in cm
+        self.target_vel = 0.5*0.33
         self._max_turning_angle = 0.087 # angle saturatoin
         self.control_mode = None
-        self.c_state = State()
+        cstate=State(x=0, y=0, yaw=0, v=0,t=clock.time()) 
+        self.c_state = cstate # we may update velocity via direct feeedback
+
         self.wpts = [[10,10,10,5,1],[5,3.5,2,2,2]] #updated by path planner
-        self.poses = [-pi/,-pi/2,-pi,-pi,-pi]
+        self.poses = [-pi/2,-pi/2,-pi,-pi,-pi]
         self.wptindx = 0
         #cancel goal if feedback is stuck
         self._feed_time = float(rospy.get_time())
@@ -179,7 +183,8 @@ class NavigationServer():
         
         #nodes
         self._feed_sub = rospy.Subscriber('/feedback',localizemsg,self._feed_cb)
-        self._com_pub = rospy.Publisher('/commu', com_msg,queue_size=1)
+        
+        self._com_pub = rospy.Publisher('commu', com_msg,queue_size=1)
         #self._status_sub = rospy.Subscriber('/Monitor', Status, self._status_cb) # to use robot ids 
         self.param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
         
@@ -202,13 +207,21 @@ class NavigationServer():
         self._feed_time = msg.timestamp
         self.bot_id = msg.id
         if self.bot_id != str(0):  
-            self.c_state = [msg.x_cordinate,msg.y_cordinate,msg.angle,msg.velocity,msg.timestamp] 
+            self.c_state.x = msg.x_cordinate
+            self.c_state.y=msg.y_cordinate
+            self.c_state.yaw=msg.angle
+            self.c_state.v=msg.velocity
+            self.c_state.t=msg.timestamp
+
+            #cstate=State(x=0, y=0, yaw=0, v=0,t=clock.time()) 
+
         self.send_ctrl()
                         
     def send_ctrl(self):
-        if not self._as.is_active():
-            self.v = 0
-            self.w = 0
+        #pdb.set_trace()
+        #if not self._as.is_active():
+        #    self.v = 0
+        #    self.w = 0
         vp = self.v
         wp = self.w
         self._com_pub.publish(v = vp, w = wp,ifUnload = False)      
@@ -217,6 +230,7 @@ class NavigationServer():
         result = state1Result()
         result.Reached = 'preempted'
         result.tElapsed = self.action_feedback.tElapsed
+        rospy.logwarn("prempted")
         self._as.set_preempted(result)
     
     def _success_cb(self):
@@ -325,17 +339,18 @@ class NavigationServer():
         #ref track points
         wpts = np.array(self.wpts)*0.15 #converted to meters bsed
         
-        
+        #pdb.set_trace()
         target_course = TargetCourse(wpts[0],wpts[1])
         t_ind, _ = target_course.search_target_index(self.c_state)
-        lastIndex = len(wpts) - 1
+        lastIndex = len(wpts[0]) - 1
 
         pose = self.poses
         qRef = [wpts[0][-1],wpts[1][-1],pose[-1]]
         
         
-
-        while not rospy.is_shutdown() and lastIndex >= t_ind:
+        
+        while not rospy.is_shutdown() and lastIndex >= t_ind: 
+            
             rate = rospy.Rate(1/dt)
             D = self.c_state.calc_distance(qRef[0], qRef[1])
             if D < self.stopTol: 
@@ -351,7 +366,7 @@ class NavigationServer():
 
                 q = [self.c_state.x,self.c_state.y,self.c_state.yaw]
                 
-                ePhi = wrap2PI(phiT-q[2])
+                ePhi = self.wrap2PI(phiT-q[2])
                 
                 
                 if ePhi > pi/2:
@@ -385,7 +400,7 @@ class NavigationServer():
             k = self.param_client.get_configuration(timeout=1) 
             kp= float(k['vel_p'])
             kd= float(k['vel_d']) 
-            ki= float(k['vel_i])
+            ki= float(k['vel_i'])
             v_pid.setKp(kp)
             v_pid.setKd(kd)
             v_pid.setKi(ki)
@@ -399,7 +414,7 @@ class NavigationServer():
             k = self.param_client.get_configuration(timeout=1) 
             kp= float(k['pos_p'])
             kd= float(k['pos_d']) 
-            ki= float(k['pos_i])
+            ki= float(k['pos_i'])
             p_pid.setKp(kp)
             p_pid.setKd(kd)
             p_pid.setKi(ki)
@@ -434,7 +449,7 @@ class NavigationServer():
         #navigate
         while not rospy.is_shutdown():
             self.drive_bot()
-            lastIndex >= t_ind
+            
             if self.success:
                 self._success_cb()
             if self.abort:
