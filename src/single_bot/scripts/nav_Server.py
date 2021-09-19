@@ -25,11 +25,7 @@ import rospy
 from CubicSpline import cubic_spline_planner
 from pathPlanner import a_star
 from rospy.client import spin
-from rospy.core import loginfo
-
-from single_bot.msg import state1Action
-from single_bot.msg import state1Goal
-from single_bot.msg import state1Result
+global dt
 from single_bot.msg import state1Feedback
 from single_bot.msg import localizemsg
 from single_bot.msg import com_msg
