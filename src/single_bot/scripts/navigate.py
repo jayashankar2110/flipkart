@@ -95,7 +95,7 @@ class Bot():
                 _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
                 param_client.update_configuration({"start_navigation":False})
                 drive = False
-                rate.sleep(0.1)        
+                rate.sleep()        
         
 
     def unload(self):
@@ -140,6 +140,9 @@ if __name__ == '__main__':
     bot1.loaded = True  
     try:
         while not rospy.is_shutdown():
+            while(not bot1.c_state):
+                print('waiting for feedback')
+                rate.sleep()
             bot1.identify_state()
             if bot1.bot_state == '@Home' and bot1.loaded:
                 print('Sending bot to unload')
