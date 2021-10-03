@@ -14,7 +14,8 @@ import numpy as np
 
 # paramers
 look_forward = 0.20  # in cm
-   
+param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
+  
 
 class Bot():
     def __init__(self,id):
@@ -30,7 +31,6 @@ class Bot():
         self.target_indx = 0
 
     def control(self,_com_pub):
-        param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
         k = self.param_client.get_configuration(timeout=1) 
         drive = k['start_navigation']
         while drive and self.target_indx < len(self.cx) and not rospy.is_shutdown():
