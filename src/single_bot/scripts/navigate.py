@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from numpy.core.numeric import load
 import rospy
 
 
@@ -21,6 +22,7 @@ class Bot():
     def __init__(self,id):
         self.bot_id = id
         self.bot_state = 'idle'
+        self.loaded = None
         self.cx=[]
         self.cy=[] 
         self.v = 0
@@ -34,7 +36,7 @@ class Bot():
     def control(self,_com_pub,rate):
         k = self.param_client.get_configuration(timeout=1) 
         drive = k['start_navigation']
-        while drive and self.target_indx < len(self.cx) and not rospy.is_shutdown():
+        while drive and self.target_indx < len(self.cx) and not rospy.is_shutdown():           
             #GUI Control
             drive = k['start_navigation']
             if self.c_state:
@@ -82,7 +84,9 @@ class Bot():
         self.w= 0
         param_client.update_configuration({"start_navigation":False})
         rospy.spin()   
-
+    def unload(self):
+        print('no code to unload')
+        self.loaded = False
     def calc_distance(self, point_x, point_y):
         #pdb.set_trace()
         x = self.c_state[0]
@@ -90,6 +94,15 @@ class Bot():
         dx = x - point_x
         dy = y - point_y
         return math.hypot(dx, dy)
+    
+    def identify_state(self):
+        if self.target_indx == 0:
+            self.bot_state = '@Home'
+            self.loaded = True 
+
+        if self.target_indx == len(self.cx):
+            self.bot_state = '@Work'
+    
 
 def feed_cb(msg,bot):
     #if bot.bot_id in msg.id:
@@ -109,7 +122,19 @@ if __name__ == '__main__':
     _pub_cntl = rospy.Publisher('/commu', com_msg,queue_size=1)
     feed_sub = rospy.Subscriber('/feedback',localizemsg,feed_cb,bot1)
     try:
-        rospy.loginfo('starting navigate control')
-        bot1.control(_pub_cntl,rate)
+        bot1.identify_state()
+        if bot1.bot_state == '@Home' and bot1.loaded:
+            rospy.loginfo('starting navigate control')
+            bot1.control(_pub_cntl,rate)
+        if bot1.bot_state == '@Work' and bot1.loaded:
+            bot1.unload(_pub_cntl,rate)
+        if bot1.bot_state == '@Work' and not bot1.loaded:
+            bot1.cx = np.flip(bot1.cx)
+            bot1.cy = np.flip(bot1.cy)
+            bot1.target_indx = 0
+            rospy.loginfo('starting navigate control')
+            bot1.control(_pub_cntl,rate)
+        if bot1.bot_state == '@Home' and not bot1.loaded:
+            print('bot is idle')
     except rospy.ROSInterruptException:
         pass
