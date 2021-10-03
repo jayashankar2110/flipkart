@@ -20,6 +20,7 @@ param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30,
 class Bot():
     def __init__(self,id):
         self.bot_id = id
+        self.bot_state = 'idle'
         self.cx=[]
         self.cy=[] 
         self.v = 0
@@ -30,7 +31,7 @@ class Bot():
         self.debug = {}
         self.target_indx = 0
 
-    def control(self,_com_pub):
+    def control(self,_com_pub,rate):
         k = self.param_client.get_configuration(timeout=1) 
         drive = k['start_navigation']
         while drive and self.target_indx < len(self.cx) and not rospy.is_shutdown():
@@ -73,6 +74,7 @@ class Bot():
                 self.debug['control'] = [v,w]
                 self.debug['target_indx'] = self.target_indx
                 print(self.debug)
+                rate.sleep()
             else:
                 print('No feedback')
         print('Robot stopped')
@@ -97,6 +99,7 @@ def feed_cb(msg,bot):
 
 if __name__ == '__main__':
     rospy.init_node('nav_Server')
+    rate = rospy.Rate(10)
     ax=np.array([10,10,10,5,1])
     ay=np.array([5,3.5,2,2,2]) 
     bot1 = Bot(str(1))   # bot id
@@ -107,6 +110,6 @@ if __name__ == '__main__':
     feed_sub = rospy.Subscriber('/feedback',localizemsg,feed_cb,bot1)
     try:
         rospy.loginfo('starting navigate control')
-        bot1.control(_pub_cntl)
+        bot1.control(_pub_cntl,rate)
     except rospy.ROSInterruptException:
         pass
