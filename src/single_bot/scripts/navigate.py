@@ -21,7 +21,7 @@ stop_tol = 0.05
 class Bot():
     def __init__(self,id):
         self.bot_id = id
-        self.bot_state = 'idle'
+        self.bot_state = '@Home'
         self.loaded = None
         self.cx=None
         self.cy=None
@@ -38,6 +38,7 @@ class Bot():
         k = self.param_client.get_configuration(timeout=1) 
         drive = k['start_navigation']
         drive = True
+        pdb.set_trace()
         while drive and self.target_indx+1 < len(self.cx) and not rospy.is_shutdown():
             #GUI Control
             #drive = k['start_navigation']
@@ -93,7 +94,7 @@ class Bot():
                 self.v= 0
                 self.w= 0
                 _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
-                param_client.update_configuration({"start_navigation":False})
+                #param_client.update_configuration({"start_navigation":False})
                 drive = False
                 rate.sleep()        
         
@@ -117,8 +118,11 @@ class Bot():
         if dist_from_home < stop_tol and self.v ==0 and self.w==0:
             self.bot_state = '@Home'
 
-        if dist_from_work < stop_tol and self.v ==0 and self.w==0:
+        elif dist_from_work < stop_tol and self.v ==0 and self.w==0:
             self.bot_state = '@Work'
+        else:
+            print("not in position")
+
     
 
 def feed_cb(msg,bot):
@@ -135,15 +139,17 @@ if __name__ == '__main__':
     bot1 = Bot(str(1))   # bot id
     bot1.cx = (ax-1)*0.15
     bot1.cy = (ay-1)*0.15
+    
     _pub_cntl = rospy.Publisher('/commu', com_msg,queue_size=1)
     feed_sub = rospy.Subscriber('/feedback',localizemsg,feed_cb,bot1)
     bot1.loaded = True  
     try:
         while not rospy.is_shutdown():
+
             while(not bot1.c_state):
                 print('waiting for feedback')
                 rate.sleep()
-            bot1.identify_state()
+        
             if bot1.bot_state == '@Home' and bot1.loaded:
                 print('Sending bot to unload')
                 bot1.control(_pub_cntl,rate)
@@ -158,6 +164,7 @@ if __name__ == '__main__':
                 bot1.control(_pub_cntl,rate)
             if bot1.bot_state == '@Home' and not bot1.loaded:
                 print('bot reached home')
-            rospy.spin()
+            bot1.identify_state()
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass
