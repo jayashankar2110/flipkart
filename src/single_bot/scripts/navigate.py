@@ -6,7 +6,7 @@ import dynamic_reconfigure.client
 from PID import PID
 import time as clock
 import pdb
-
+import math
 from single_bot.msg import localizemsg
 from single_bot.msg import com_msg
 
@@ -37,13 +37,13 @@ class Bot():
             #GUI Control
             drive = k['start_navigation']
             # determine target point
-            dist = self.calc_distance(self.cx[target_indx], self.cy[target_indx])
+            dist = self.calc_distance(self.cx[self.target_indx], self.cy[self.target_indx])
             if dist < look_forward:
                 self.target_indx += 1
-            tx = self.cx[target_indx]
-            ty = self.cy[target_indx]
+            tx = self.cx[self.target_indx]
+            ty = self.cy[self.target_indx]
             #get feedback and transform error
-            theta = c_state[2]
+            theta = self.c_state[2]
             x = self.c_state[0]
             y = self.c_state[1]
 
@@ -56,9 +56,8 @@ class Bot():
             #calculate control input
             kv= float(k['vel_p'])
             kp= float(k['yaw_p'])
-            p_pid.setKp(kv)
-            v = vel(i) + kv*ePos
-            w = tan(atan(kp*eTheta))
+            v = kv*ePos
+            w = math.tan(math.atan(kp*eTheta))
             self.v = v
             self.w = w
             _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
@@ -68,15 +67,15 @@ class Bot():
                 break
 
             # debug output
-            self.debug['Xe'] = Xe
-            self.debug['alpha_e'] = alpha_e
+            self.debug['Xe'] = ePos
+            self.debug['alpha_e'] = eTheta
             self.debug['control'] = [v,w]
-            self.debug['target_indx'] = target_indx
+            self.debug['target_indx'] = self.target_indx
             print(self.debug)
         print('Robot stopped')
         self.v= 0
         self.w= 0
-        self._param_client.update_configuration({"start_navigation":False})
+        param_client.update_configuration({"start_navigation":False})
         
 
     def calc_distance(self, point_x, point_y):
