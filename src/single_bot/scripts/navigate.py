@@ -16,15 +16,16 @@ import numpy as np
 # paramers
 look_forward = 0.20  # in cm
 param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
-  
+stop_tol = 0.05
 
 class Bot():
     def __init__(self,id):
         self.bot_id = id
         self.bot_state = 'idle'
         self.loaded = None
-        self.cx=[]
-        self.cy=[] 
+        self.cx=None
+        self.cy=None
+        self.final_indx = None 
         self.v = 0
         self.w=0
         self.c_state=None
@@ -85,15 +86,22 @@ class Bot():
                 rate.sleep()
             else:
                 print('No feedback')
-        print('Robot stopped')
-        self.v= 0
-        self.w= 0
-        _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
-        param_client.update_configuration({"start_navigation":False})
-        rospy.spin()   
+        if self.target_indx+1 < len(self.cx):
+            #implement pose control
+            for i in range(10):
+                print('Stopping bot')
+                self.v= 0
+                self.w= 0
+                _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
+                param_client.update_configuration({"start_navigation":False})
+                drive = False
+                rate.sleep(0.1)        
+        
+
     def unload(self):
         print('no code to unload')
         self.loaded = False
+    
     def calc_distance(self, point_x, point_y):
         #pdb.set_trace()
         x = self.c_state[0]
@@ -104,11 +112,12 @@ class Bot():
         pdb.set_trace()
     
     def identify_state(self):
-        if self.target_indx == 0:
+        dist_from_work = bot1.calc_distance(bot1.cx[-1],bot1.cy[-1])
+        dist_from_home = bot1.calc_distance(bot1.cx[0],bot1.cy[0])
+        if dist_from_home < stop_tol and self.v ==0 and self.w==0:
             self.bot_state = '@Home'
-            self.loaded = True 
 
-        if self.target_indx == len(self.cx):
+        if dist_from_work < stop_tol and self.v ==0 and self.w==0:
             self.bot_state = '@Work'
     
 
@@ -126,24 +135,26 @@ if __name__ == '__main__':
     bot1 = Bot(str(1))   # bot id
     bot1.cx = (ax-1)*0.15
     bot1.cy = (ay-1)*0.15
-    bot1.target_indx = 0
     _pub_cntl = rospy.Publisher('/commu', com_msg,queue_size=1)
     feed_sub = rospy.Subscriber('/feedback',localizemsg,feed_cb,bot1)
+    bot1.loaded = True  
     try:
-        bot1.identify_state()
-        if bot1.bot_state == '@Home' and bot1.loaded:
-            rospy.loginfo('starting navigate control')
-            bot1.control(_pub_cntl,rate)
-        if bot1.bot_state == '@Work' and bot1.loaded:
-            bot1.unload(_pub_cntl,rate)
-        if bot1.bot_state == '@Work' and not bot1.loaded:
-            bot1.cx = np.flip(bot1.cx)
-            bot1.cy = np.flip(bot1.cy)
-            bot1.target_indx = 0
-            rospy.loginfo('starting navigate control')
-            bot1.control(_pub_cntl,rate)
-        if bot1.bot_state == '@Home' and not bot1.loaded:
-            print('bot is idle')
-        rospy.spin()
+        while not rospy.is_shutdown():
+            bot1.identify_state()
+            if bot1.bot_state == '@Home' and bot1.loaded:
+                print('Sending bot to unload')
+                bot1.control(_pub_cntl,rate)
+            if bot1.bot_state == '@Work' and bot1.loaded:
+                bot1.unload(_pub_cntl,rate)
+                print('Unloading bot')
+            if bot1.bot_state == '@Work' and not bot1.loaded:
+                bot1.cx = np.flip(bot1.cx)
+                bot1.cy = np.flip(bot1.cy)
+                bot1.target_indx = 0
+                print('Returning bot to home')
+                bot1.control(_pub_cntl,rate)
+            if bot1.bot_state == '@Home' and not bot1.loaded:
+                print('bot reached home')
+            rospy.spin()
     except rospy.ROSInterruptException:
         pass
