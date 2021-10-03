@@ -41,7 +41,7 @@ class Bot():
         drive = k['start_navigation']
         drive = True
         
-        while drive and not rospy.is_shutdown() and (self.dist_from_home < stop_tol or self.dist_from_work < stop_tol) :
+        while drive and not rospy.is_shutdown() and self.target_indx < len(self.cx) :
             #GUI Control
             #drive = k['start_navigation']
             drive = True
@@ -49,9 +49,6 @@ class Bot():
                 # determine target point
                 print(self.cx[self.target_indx])
                 print(self.cy[self.target_indx])
-                dist = self.calc_distance(self.cx[self.target_indx], self.cy[self.target_indx])
-                if dist < look_forward:
-                    self.target_indx += 1
                 
                 tx = self.cx[self.target_indx]
                 ty = self.cy[self.target_indx]
@@ -74,6 +71,9 @@ class Bot():
                 self.v = v
                 self.w = w
                 _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
+                dist = self.calc_distance(self.cx[self.target_indx], self.cy[self.target_indx])
+                if dist < look_forward:
+                    self.target_indx += 1
                 # break if unstable
                 if ePos > 40:
                     rospy.logwarn("bot is too far from target")
