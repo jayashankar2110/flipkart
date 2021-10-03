@@ -36,7 +36,7 @@ def callback(ctl_msg,robot):
     if idle_state:
         msg_robot =robot_msg(x=0,y=0,isUnload=ctl_msg.ifUnload) 
         pass
-    twist.linear.x = 0.7
+    twist.linear.x = 0.75
     twist.linear.y = 0
     twist.linear.z = 0
     twist.angular.x = 0
