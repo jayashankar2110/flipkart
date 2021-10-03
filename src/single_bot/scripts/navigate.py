@@ -16,7 +16,7 @@ import numpy as np
 # paramers
 look_forward = 0.20  # in cm
 param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
-stop_tol = 0.20
+stop_tol = 0.05
 
 class Bot():
     def __init__(self,id):
@@ -40,8 +40,7 @@ class Bot():
         k = self.param_client.get_configuration(timeout=1) 
         drive = k['start_navigation']
         drive = True
-        
-        while drive and not rospy.is_shutdown() and self.target_indx < len(self.cx) :
+        while drive and not rospy.is_shutdown():
             #GUI Control
             #drive = k['start_navigation']
             drive = True
@@ -70,8 +69,13 @@ class Bot():
                 self.w = w
                 _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
                 dist = self.calc_distance(self.cx[self.target_indx], self.cy[self.target_indx])
-                if dist < look_forward:
+                if dist < look_forward and self.target_indx < len(self.cx):
                     self.target_indx += 1
+                elif dist < stop_tol:
+                    print('target reached')
+                    break
+                else:
+                    print('reaching destination')
                 # break if unstable
                 if ePos > 40:
                     rospy.logwarn("bot is too far from target")
@@ -133,10 +137,17 @@ def feed_cb(msg,bot):
     bot.dist_from_home = bot1.calc_distance(bot1.cx[0],bot1.cy[0])
         #yaw = self.wrap2PI(float(msg.angle))
 
+def path_planner():
 
 if __name__ == '__main__':
     rospy.init_node('nav_Server')
     rate = rospy.Rate(10)
+    # bot1 = Bot(str(1))
+    # bot2 = Bot(str(2))
+    # bot3 = Bot(str(3))
+    # bot4 = Bot(str(4))
+    
+    # path_planner(bot1,bot2,bot3,bot4)
     ax=np.array([10,10,10,5,1])
     ay=np.array([5,3.5,2,2,2]) 
     bot1 = Bot(str(1))   # bot id
