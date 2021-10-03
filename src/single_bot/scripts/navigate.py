@@ -16,7 +16,7 @@ import numpy as np
 # paramers
 look_forward = 0.20  # in cm
 param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
-stop_tol = 0.15
+stop_tol = 0.20
 
 class Bot():
     def __init__(self,id):
@@ -47,8 +47,6 @@ class Bot():
             drive = True
             if self.c_state:
                 # determine target point
-                print(self.cx[self.target_indx])
-                print(self.cy[self.target_indx])
                 
                 tx = self.cx[self.target_indx]
                 ty = self.cy[self.target_indx]
@@ -85,11 +83,13 @@ class Bot():
                 self.debug['control'] = [v,w]
                 self.debug['target_indx'] = self.target_indx
                 self.debug['bot']=self.bot_state
+                self.debug['distq']=[self.dist_from_home,self.dist_from_work]
                 print(self.debug)
                 rate.sleep()
+                
             else:
                 print('No feedback')
-        if self.target_indx+1 < len(self.cx):
+        if self.target_indx == len(self.cx):
             #implement pose control
             for i in range(10):
                 print('Stopping bot')
@@ -101,7 +101,7 @@ class Bot():
                 rate.sleep()        
         
 
-    def unload(self):
+    def unload(self,pub,rate):
         print('no code to unload')
         self.loaded = False
     
@@ -115,7 +115,7 @@ class Bot():
         pdb.set_trace()
     
     def identify_state(self):
-        
+        print(self.bot_state)
         if self.dist_from_home < stop_tol and self.v ==0 and self.w==0:
             self.bot_state = '@Home'
 
