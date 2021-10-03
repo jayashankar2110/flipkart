@@ -18,7 +18,7 @@
     <node pkg="single_bot" name="unload_node" type="unload_node.py"/> 
 
     <node pkg="single_bot" name="image" type="camera_listner.py"/> 
-    <node pkg="single_bot" name="localzation" type="localzation.py"/> 
+    <!-- <node pkg="single_bot" name="localzation" type="localzation.py"/>  -->
     <!-- <node pkg="single_bot" name="localzation" type="dummy_feed.py"/> -->
     
     

@@ -258,7 +258,7 @@ class NavigationServer():
     def pose_control(self,target, current,SetPoint,feedback_value):
         if Tune:
             k = self.param_client.get_configuration(timeout=1) 
-            kv= -float(k['vel_p'])
+            kv= float(k['vel_p'])
             kp= float(k['yaw_p'])
             ki= float(k['yaw_i'])
             kd= float(k['yaw_d'])
@@ -268,7 +268,7 @@ class NavigationServer():
             p_pid.setKp(kv)
 
             #rospy.loginfo(kv)
-        error_yaw = SetPoint - feedback_value
+        error_yaw = feedback_value
         if error_yaw > (math.pi/2):
             self.spin=True
         else:
@@ -295,7 +295,7 @@ class NavigationServer():
             v_pid.setKp(kv)
 
         
-        error_yaw = SetPoint - feedback_value
+        error_yaw =  feedback_value
         error_yaw = max(min(error_yaw, self._max_turning_angle ), -self._max_turning_angle )
         
         if abs(error_yaw) > math.pi/3:
@@ -349,7 +349,7 @@ class NavigationServer():
         ref_pos = np.dot(T,[[tx-state.x],[ty-state.y]])
         alpha = math.atan2(ref_pos[1], ref_pos[0])
         self.debug['alpha'] = alpha
-        alpha = max(min(alpha, math.pi/1.5), -math.pi/1.5)
+        alpha = -max(min(alpha, math.pi/1.5), -math.pi/1.5)
         #delta = self.yaw_control(0,alpha,kp,ki,kd)
         target_pose = [tx,ty]
         curr_pose = [state.x,state.y]
@@ -563,7 +563,7 @@ class NavigationServer():
             #tuning param loop delay comment once it is tuned
             k = self.param_client.get_configuration(timeout=1)
             loop_delay = float(k['loop_delay']) 
-            rospy.sleep(loop_delay)    
+            rospy.sleep(0.1)    
         if preempted:
             self._preempt_cb(goal_handle)
         if abort:

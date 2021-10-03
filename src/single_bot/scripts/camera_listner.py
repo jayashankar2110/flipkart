@@ -20,7 +20,7 @@ from cv_bridge import CvBridge
 
 image_pub = rospy.Publisher("image_topic", Image,queue_size=5)
 rospy.init_node('image', anonymous=True)
-url = "http://192.168.0.102:8080/shot.jpg"
+url = "http://192.168.0.103:8080/shot.jpg"
 #cv2.namedWindow("Keypoints",cv2.WINDOW_NORMAL)
 bridge = CvBridge()
 
@@ -36,7 +36,9 @@ while not rospy.is_shutdown():
     #pts1 = np.float32([[127, 201], [1560,94], [175,950 ], [1570, 910]])
     #pts2 = np.float32([[0, 0], [1496,0], [0,780], [1496, 780]])
     #pts1 = np.float32([[0, 230], [1600,120], [70,1045], [1620, 920]])
-    pts1 = np.float32([[10, 94], [600,100], [10,395], [600, 395]])
+    #pts1 = np.float32([[10, 94], [600,100], [10,395], [600, 395]])
+    #pts2 = np.float32([[0, 0], [1496,0], [0,780], [1496, 780]])
+    pts1 = np.float32([[20, 115], [615,60], [55,400], [620, 375]])
     pts2 = np.float32([[0, 0], [1496,0], [0,780], [1496, 780]])
     # Apply Perspective Transform Algorithm
     matrix = cv2.getPerspectiveTransform(pts1, pts2)
