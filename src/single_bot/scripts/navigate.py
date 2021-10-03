@@ -16,7 +16,7 @@ import numpy as np
 # paramers
 look_forward = 0.20  # in cm
 param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
-stop_tol = 0.05
+stop_tol = 0.15
 
 class Bot():
     def __init__(self,id):
@@ -29,6 +29,8 @@ class Bot():
         self.v = 0
         self.w=0
         self.c_state=None
+        self.dist_from_work = None
+        self.dist_from_home = None
         self.param_client = dynamic_reconfigure.client.Client("dyn_param_server", timeout=30, config_callback=None)
         self.debug = dict()
         self.debug = {}
@@ -38,8 +40,8 @@ class Bot():
         k = self.param_client.get_configuration(timeout=1) 
         drive = k['start_navigation']
         drive = True
-        pdb.set_trace()
-        while drive and self.target_indx+1 < len(self.cx) and not rospy.is_shutdown():
+        
+        while drive and not rospy.is_shutdown() and (self.dist_from_home < stop_tol or self.dist_from_work < stop_tol) :
             #GUI Control
             #drive = k['start_navigation']
             drive = True
@@ -113,12 +115,11 @@ class Bot():
         pdb.set_trace()
     
     def identify_state(self):
-        dist_from_work = bot1.calc_distance(bot1.cx[-1],bot1.cy[-1])
-        dist_from_home = bot1.calc_distance(bot1.cx[0],bot1.cy[0])
-        if dist_from_home < stop_tol and self.v ==0 and self.w==0:
+        
+        if self.dist_from_home < stop_tol and self.v ==0 and self.w==0:
             self.bot_state = '@Home'
 
-        elif dist_from_work < stop_tol and self.v ==0 and self.w==0:
+        elif self.dist_from_work < stop_tol and self.v ==0 and self.w==0:
             self.bot_state = '@Work'
         else:
             print("not in position")
@@ -128,6 +129,8 @@ class Bot():
 def feed_cb(msg,bot):
     #if bot.bot_id in msg.id:
     bot.c_state = [msg.x_cordinate,msg.y_cordinate,msg.angle,msg.velocity] 
+    bot.dist_from_work = bot1.calc_distance(bot1.cx[-1],bot1.cy[-1])
+    bot.dist_from_home = bot1.calc_distance(bot1.cx[0],bot1.cy[0])
         #yaw = self.wrap2PI(float(msg.angle))
 
 
