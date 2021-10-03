@@ -36,42 +36,45 @@ class Bot():
         while drive and self.target_indx < len(self.cx) and not rospy.is_shutdown():
             #GUI Control
             drive = k['start_navigation']
-            # determine target point
-            dist = self.calc_distance(self.cx[self.target_indx], self.cy[self.target_indx])
-            if dist < look_forward:
-                self.target_indx += 1
-            tx = self.cx[self.target_indx]
-            ty = self.cy[self.target_indx]
-            #get feedback and transform error
-            theta = self.c_state[2]
-            x = self.c_state[0]
-            y = self.c_state[1]
+            if self.c_state:
+                # determine target point
+                dist = self.calc_distance(self.cx[self.target_indx], self.cy[self.target_indx])
+                if dist < look_forward:
+                    self.target_indx += 1
+                tx = self.cx[self.target_indx]
+                ty = self.cy[self.target_indx]
+                #get feedback and transform error
+                theta = self.c_state[2]
+                x = self.c_state[0]
+                y = self.c_state[1]
 
-            T = [[math.cos(theta),math.sin(theta)],[-math.sin(theta),math.cos(theta)]]
-            Xe = np.dot(T,[[tx-x],[ty-y]]) # error vector
-            eTheta = math.atan2(Xe[1], Xe[0])
-            eTheta = -max(min(eTheta, math.pi/1.5), -math.pi/1.5)
-            ePos = np.sqrt((tx-x)^2 + (ty-y)^2)
+                T = [[math.cos(theta),math.sin(theta)],[-math.sin(theta),math.cos(theta)]]
+                Xe = np.dot(T,[[tx-x],[ty-y]]) # error vector
+                eTheta = math.atan2(Xe[1], Xe[0])
+                eTheta = -max(min(eTheta, math.pi/1.5), -math.pi/1.5)
+                ePos = np.sqrt((tx-x)^2 + (ty-y)^2)
 
-            #calculate control input
-            kv= float(k['vel_p'])
-            kp= float(k['yaw_p'])
-            v = kv*ePos
-            w = math.tan(math.atan(kp*eTheta))
-            self.v = v
-            self.w = w
-            _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
-            # break if unstable
-            if ePos > 40:
-                rospy.logwarn("bot is too far from target")
-                break
+                #calculate control input
+                kv= float(k['vel_p'])
+                kp= float(k['yaw_p'])
+                v = kv*ePos
+                w = math.tan(math.atan(kp*eTheta))
+                self.v = v
+                self.w = w
+                _com_pub.publish(v = self.v, w = self.w,ifUnload = False)
+                # break if unstable
+                if ePos > 40:
+                    rospy.logwarn("bot is too far from target")
+                    break
 
-            # debug output
-            self.debug['Xe'] = ePos
-            self.debug['alpha_e'] = eTheta
-            self.debug['control'] = [v,w]
-            self.debug['target_indx'] = self.target_indx
-            print(self.debug)
+                # debug output
+                self.debug['Xe'] = ePos
+                self.debug['alpha_e'] = eTheta
+                self.debug['control'] = [v,w]
+                self.debug['target_indx'] = self.target_indx
+                print(self.debug)
+            else:
+                print('No feedback')
         print('Robot stopped')
         self.v= 0
         self.w= 0
@@ -103,7 +106,7 @@ if __name__ == '__main__':
     _pub_cntl = rospy.Publisher('/commu', com_msg,queue_size=1)
     feed_sub = rospy.Subscriber('/feedback',localizemsg,feed_cb,bot1)
     try:
-        rospy.loginfo('starting commu node')
+        rospy.loginfo('starting navigate control')
         bot1.control(_pub_cntl)
     except rospy.ROSInterruptException:
         pass
