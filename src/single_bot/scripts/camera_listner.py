@@ -20,7 +20,7 @@ from cv_bridge import CvBridge
 
 image_pub = rospy.Publisher("image_topic", Image,queue_size=5)
 rospy.init_node('image', anonymous=True)
-url = "http://192.168.0.103:8080/shot.jpg"
+url = "http://192.168.0.102:8080/shot.jpg"
 #cv2.namedWindow("Keypoints",cv2.WINDOW_NORMAL)
 bridge = CvBridge()
 

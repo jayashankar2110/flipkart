@@ -33,9 +33,11 @@ class Bot():
     def control(self,_com_pub):
         k = self.param_client.get_configuration(timeout=1) 
         drive = k['start_navigation']
+        drive = True
         while drive and self.target_indx < len(self.cx) and not rospy.is_shutdown():
             #GUI Control
-            drive = k['start_navigation']
+            #drive = k['start_navigation']
+            drive = True
             if self.c_state:
                 # determine target point
                 dist = self.calc_distance(self.cx[self.target_indx], self.cy[self.target_indx])
@@ -52,11 +54,11 @@ class Bot():
                 Xe = np.dot(T,[[tx-x],[ty-y]]) # error vector
                 eTheta = math.atan2(Xe[1], Xe[0])
                 eTheta = -max(min(eTheta, math.pi/1.5), -math.pi/1.5)
-                ePos = np.sqrt((tx-x)^2 + (ty-y)^2)
+                ePos = np.sqrt((tx-x)**2 + (ty-y)**2)
 
                 #calculate control input
-                kv= float(k['vel_p'])
-                kp= float(k['yaw_p'])
+                kv= -float(k['vel_p'])
+                kp= -float(k['yaw_p'])
                 v = kv*ePos
                 w = math.tan(math.atan(kp*eTheta))
                 self.v = v
@@ -88,6 +90,7 @@ class Bot():
         dx = x - point_x
         dy = y - point_y
         return math.hypot(dx, dy)
+        pdb.set_trace()
 
 def feed_cb(msg,bot):
     #if bot.bot_id in msg.id:
