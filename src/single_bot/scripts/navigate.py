@@ -76,7 +76,7 @@ class Bot():
         self.v= 0
         self.w= 0
         param_client.update_configuration({"start_navigation":False})
-        
+        rospy.spin()   
 
     def calc_distance(self, point_x, point_y):
         #pdb.set_trace()
@@ -102,5 +102,8 @@ if __name__ == '__main__':
     bot1.target_indx = 0
     _pub_cntl = rospy.Publisher('/commu', com_msg,queue_size=1)
     feed_sub = rospy.Subscriber('/feedback',localizemsg,feed_cb,bot1)
-    bot1.control(_pub_cntl)
-    rospy.spin()
+    try:
+        rospy.loginfo('starting commu node')
+        bot1.control(_pub_cntl)
+    except rospy.ROSInterruptException:
+        pass
